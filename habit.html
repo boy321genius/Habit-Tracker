@@ -106,6 +106,23 @@ body {
 
 .mascot-svg { width: 120px; height: 140px; }
 
+.mascot-progress {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-top: -4px;
+  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+  transition: color 0.4s ease, transform 0.3s ease;
+}
+.mascot-progress.complete {
+  color: var(--success);
+}
+.mascot-progress.bump {
+  transform: scale(1.15);
+}
+
 .mascot-fill-wave {
   transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -117,8 +134,11 @@ body {
 }
 
 @keyframes wave-motion {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(4px); }
+  0%   { transform: translateX(0px) translateY(0px); }
+  25%  { transform: translateX(6px) translateY(-3px); }
+  50%  { transform: translateX(0px) translateY(3px); }
+  75%  { transform: translateX(-6px) translateY(-2px); }
+  100% { transform: translateX(0px) translateY(0px); }
 }
 
 @keyframes mascot-dance {
@@ -128,8 +148,20 @@ body {
   75% { transform: translateY(-6px) rotate(2deg); }
 }
 
+@keyframes mascot-float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  30%       { transform: translateY(-6px) rotate(1.2deg); }
+  65%       { transform: translateY(-3px) rotate(-0.6deg); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mascot-svg {
+    animation: mascot-float 3.5s ease-in-out infinite;
+  }
+}
+
 .mascot-celebrate {
-  animation: mascot-dance 0.6s ease-in-out 3;
+  animation: mascot-dance 0.6s ease-in-out 3 !important;
 }
 
 /* ===== Completion Message ===== */
@@ -1228,6 +1260,7 @@ body {
 <!-- Today View -->
 <div class="view active" id="view-today">
   <div class="mascot-container" id="mascot-area"></div>
+  <div class="mascot-progress" id="mascot-progress"></div>
   <div class="completion-msg" id="completion-msg">All done! 🎉</div>
   <div class="habits-list" id="habits-list"></div>
   <div class="empty-state" id="empty-state" style="display:none;">
@@ -1870,21 +1903,35 @@ function renderTodayView() {
 
   emptyEl.style.display = 'none';
 
-  // Calculate completion %
-  let completed = 0;
+  // Calculate completion % — unit-based
+  let totalUnits = 0, completedUnits = 0;
   todayHabits.forEach(h => {
     if (h.targetCount) {
-      const count = h.completions[today];
-      if (typeof count === 'number' && count >= h.targetCount) completed++;
+      totalUnits += h.targetCount;
+      completedUnits += Math.min(h.completions[today] || 0, h.targetCount);
     } else {
-      if (h.completions[today]) completed++;
+      totalUnits += 1;
+      if (h.completions[today]) completedUnits += 1;
     }
   });
 
-  const pct = Math.round((completed / todayHabits.length) * 100);
+  const pct = totalUnits === 0 ? 0 : Math.round((completedUnits / totalUnits) * 100);
   mascotArea.innerHTML = createMascotSVG(pct, appData.settings.mascot);
 
-  const allDone = completed === todayHabits.length;
+  // Update progress label
+  const progressEl = document.getElementById('mascot-progress');
+  if (progressEl) {
+    progressEl.textContent = totalUnits === 0 ? '' : `${completedUnits} / ${totalUnits}`;
+    const wasDone = progressEl.classList.contains('complete');
+    const isDone = completedUnits === totalUnits && totalUnits > 0;
+    progressEl.classList.toggle('complete', isDone);
+    if (!wasDone && isDone) {
+      progressEl.classList.add('bump');
+      setTimeout(() => progressEl.classList.remove('bump'), 300);
+    }
+  }
+
+  const allDone = completedUnits === totalUnits && totalUnits > 0;
   completionMsg.classList.toggle('show', allDone);
 
   // Render habit cards
