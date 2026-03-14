@@ -1598,11 +1598,16 @@ function renderApp() {
 // ===== PWA =====
 function registerSW() {
   if ('serviceWorker' in navigator) {
+    // No fetch interception — app is fully localStorage-based.
+    // Fetch-intercepting SWs registered via blob: URLs can get stale on
+    // remote hosts (e.g. GitHub Pages) and silently break subsequent loads.
     const swCode = `
       self.addEventListener('install', e => self.skipWaiting());
-      self.addEventListener('activate', e => e.waitUntil(clients.claim()));
-      self.addEventListener('fetch', e => {
-        e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+      self.addEventListener('activate', e => {
+        e.waitUntil(
+          caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
+            .then(() => clients.claim())
+        );
       });
     `;
     const blob = new Blob([swCode], { type: 'application/javascript' });
@@ -2711,7 +2716,32 @@ function escapeHTML(str) {
 }
 
 // ===== Boot =====
-init();
+// Unregister any stale blob: SW from previous visits before registering fresh
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(reg => {
+      if (reg.active && reg.active.scriptURL.startsWith('blob:')) reg.unregister();
+    });
+  });
+}
+
+try {
+  init();
+} catch (e) {
+  console.error('Habit Tracker init error:', e);
+  document.body.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;
+                justify-content:center;height:100vh;padding:24px;text-align:center;
+                font-family:-apple-system,sans-serif;color:#EAEAEA;background:#0F0F1A;">
+      <div style="font-size:48px;margin-bottom:16px;">😴</div>
+      <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;">Oops, something went wrong</h2>
+      <p style="font-size:14px;color:#9090B0;margin-bottom:24px;">Your data is safe in localStorage. Try clearing the app cache or reloading.</p>
+      <button onclick="location.reload()" style="background:#6C63FF;color:white;border:none;
+        padding:12px 28px;border-radius:9999px;font-size:15px;font-weight:600;cursor:pointer;">
+        Reload App
+      </button>
+    </div>`;
+}
 </script>
 </body>
 </html>
