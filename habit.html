@@ -1,0 +1,2461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+   ______                            __
+  / ____/___  ____ ___  ____  __  __/ /____  _____
+ / /   / __ \/ __ `__ \/ __ \/ / / / __/ _ \/ ___/
+/ /___/ /_/ / / / / / / /_/ / /_/ / /_/  __/ /
+\____/\____/_/ /_/ /_/ .___/\__,_/\__/\___/_/
+                    /_/
+        Created with Perplexity Computer
+        https://www.perplexity.ai/computer
+-->
+<meta name="generator" content="Perplexity Computer">
+<meta name="author" content="Perplexity Computer">
+<meta property="og:see_also" content="https://www.perplexity.ai/computer">
+<link rel="author" href="https://www.perplexity.ai/computer">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Habits">
+<meta name="theme-color" content="#6C63FF">
+<title>Habit Tracker</title>
+<style>
+/* ===== CSS Custom Properties ===== */
+:root {
+  --bg: #0F0F1A;
+  --surface: #1C1C2E;
+  --surface-raised: #252540;
+  --primary: #6C63FF;
+  --secondary: #FF6584;
+  --success: #43E97B;
+  --warning: #F7971E;
+  --text-primary: #EAEAEA;
+  --text-secondary: #9090B0;
+  --border: #2A2A45;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-full: 9999px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+[data-theme="light"] {
+  --bg: #F5F5FA;
+  --surface: #FFFFFF;
+  --surface-raised: #EEEEF4;
+  --text-primary: #1A1A2E;
+  --text-secondary: #6B6B8A;
+  --border: #D8D8E8;
+}
+
+/* ===== Reset & Base ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body {
+  max-width: 430px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar { width: 0; }
+
+/* ===== Typography ===== */
+.title { font-size: 24px; font-weight: 700; }
+.habit-name { font-size: 17px; font-weight: 600; }
+.subtext { font-size: 13px; font-weight: 400; color: var(--text-secondary); }
+.badge-text { font-size: 12px; font-weight: 700; }
+
+/* ===== Views ===== */
+.view { display: none; flex: 1; overflow-y: auto; padding: var(--space-md); padding-bottom: 100px; }
+.view.active { display: flex; flex-direction: column; }
+
+/* ===== Header ===== */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md);
+  padding-top: calc(var(--space-md) + env(safe-area-inset-top, 0px));
+}
+
+.header-date { font-size: 13px; color: var(--text-secondary); }
+
+/* ===== Mascot ===== */
+.mascot-container {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-md) 0;
+  position: relative;
+}
+
+.mascot-svg { width: 120px; height: 140px; }
+
+.mascot-fill-wave {
+  transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mascot-fill-wave {
+    animation: wave-motion 3s ease-in-out infinite;
+  }
+}
+
+@keyframes wave-motion {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
+}
+
+@keyframes mascot-dance {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  25% { transform: translateY(-8px) rotate(5deg); }
+  50% { transform: translateY(-4px) rotate(-3deg); }
+  75% { transform: translateY(-6px) rotate(2deg); }
+}
+
+.mascot-celebrate {
+  animation: mascot-dance 0.6s ease-in-out 3;
+}
+
+/* ===== Completion Message ===== */
+.completion-msg {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--success);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.4s ease;
+  height: 0;
+  overflow: hidden;
+}
+
+.completion-msg.show {
+  opacity: 1;
+  transform: translateY(0);
+  height: 32px;
+  margin-bottom: var(--space-sm);
+}
+
+/* ===== Habit Cards ===== */
+.habits-list { display: flex; flex-direction: column; gap: var(--space-sm); }
+
+.habit-card {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  min-height: 72px;
+  touch-action: pan-y;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .habit-card {
+    animation: card-enter 0.4s ease backwards;
+  }
+}
+
+@keyframes card-enter {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.habit-card:active { transform: scale(0.98); }
+.habit-card.completed { border-color: transparent; }
+
+.habit-card .ripple-bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.habit-card.completed .ripple-bg {
+  opacity: 0.15;
+}
+
+.habit-emoji {
+  font-size: 28px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.habit-info {
+  flex: 1;
+  min-width: 0;
+  z-index: 1;
+}
+
+.habit-info .habit-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.habit-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.streak-badge {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--surface-raised);
+  padding: 4px 8px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--secondary);
+  transition: transform 0.2s ease;
+}
+
+@keyframes streak-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+
+.streak-pop { animation: streak-pop 0.3s ease; }
+
+.check-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.habit-card.completed .check-circle {
+  border-color: var(--success);
+  background: var(--success);
+}
+
+.check-circle svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--bg);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.habit-card.completed .check-circle svg { opacity: 1; }
+
+/* Counter habit */
+.counter-display {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 44px;
+  text-align: center;
+}
+
+.counter-display.at-goal { color: var(--success); }
+
+.counter-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: none;
+  color: var(--text-primary);
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.counter-btn:active { background: var(--surface-raised); }
+
+/* Missed indicator */
+.missed-indicator {
+  font-size: 11px;
+  color: var(--warning);
+  margin-top: 2px;
+}
+
+/* Card swipe actions */
+.card-actions {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  gap: 0;
+  z-index: 5;
+}
+
+.card-actions.show { display: flex; }
+
+.card-action-btn {
+  border: none;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 var(--space-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+}
+
+.card-action-btn.edit-btn { background: var(--primary); }
+.card-action-btn.delete-btn { background: #E74C3C; border-radius: 0 var(--radius-md) var(--radius-md) 0; }
+
+/* ===== Confetti ===== */
+.confetti-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+.confetti-piece {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .confetti-piece {
+    animation: confetti-fall 2.5s ease-in forwards;
+  }
+}
+
+/* Mini confetti for card completion */
+@keyframes mini-burst {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.mini-confetti {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  z-index: 10;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mini-confetti { animation: mini-burst 0.6s ease-out forwards; }
+}
+
+/* ===== Empty State ===== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-xl) var(--space-md);
+  flex: 1;
+}
+
+.empty-state svg { width: 80px; height: 80px; margin-bottom: var(--space-lg); opacity: 0.4; }
+.empty-state h3 { font-size: 17px; font-weight: 600; margin-bottom: var(--space-sm); }
+.empty-state p { font-size: 13px; color: var(--text-secondary); margin-bottom: var(--space-lg); }
+
+.empty-state button {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: var(--radius-full);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ===== FAB ===== */
+.fab {
+  position: fixed;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px) + var(--space-md));
+  right: max(var(--space-md), calc((100% - 430px) / 2 + var(--space-md)));
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  border: none;
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(108, 99, 255, 0.4);
+  z-index: 50;
+  transition: transform 0.2s ease;
+}
+
+.fab:active { transform: scale(0.9); }
+
+/* ===== Bottom Nav ===== */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 430px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-around;
+  padding: var(--space-sm) 0;
+  padding-bottom: calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
+  z-index: 100;
+}
+
+.nav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-xs) var(--space-md);
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  min-width: 64px;
+  min-height: 44px;
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.nav-tab.active { color: var(--primary); }
+
+.nav-tab svg { width: 22px; height: 22px; }
+
+.nav-indicator {
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--primary);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.nav-tab.active .nav-indicator { opacity: 1; }
+
+/* ===== Bottom Sheet / Modal ===== */
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.sheet-overlay.show { opacity: 1; pointer-events: all; }
+
+.sheet {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(100%);
+  width: 100%;
+  max-width: 430px;
+  max-height: 85vh;
+  background: var(--surface);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  z-index: 201;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow-y: auto;
+  padding: var(--space-lg);
+  padding-bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0px));
+  /* position context for close button */
+}
+
+.sheet.show { transform: translateX(-50%) translateY(0); }
+
+.sheet-close {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+}
+
+.sheet-close:active { opacity: 0.7; }
+
+.sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border);
+  border-radius: var(--radius-full);
+  margin: 0 auto var(--space-lg);
+}
+
+.sheet-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: var(--space-lg);
+}
+
+/* ===== Form Elements ===== */
+.form-group { margin-bottom: var(--space-md); }
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px var(--space-md);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 16px;
+  font-family: var(--font);
+  outline: none;
+  transition: border-color 0.2s ease;
+  -webkit-appearance: none;
+}
+
+.form-input:focus { border-color: var(--primary); }
+.form-input::placeholder { color: var(--text-secondary); opacity: 0.6; }
+
+/* Emoji picker */
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--space-xs);
+}
+
+.emoji-option {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+  background: var(--surface-raised);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.emoji-option:active { transform: scale(0.9); }
+.emoji-option.selected { border-color: var(--primary); background: rgba(108,99,255,0.15); }
+
+/* Color picker */
+.color-swatches {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.color-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.color-swatch:active { transform: scale(0.9); }
+.color-swatch.selected { border-color: var(--text-primary); }
+
+/* Frequency selector */
+.freq-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.freq-option {
+  padding: 8px 14px;
+  border-radius: var(--radius-full);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.freq-option.selected {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+/* Day chips */
+.day-chips {
+  display: flex;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.day-chip {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.day-chip.selected {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+/* Target count */
+.target-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.target-row .form-input {
+  width: 80px;
+  text-align: center;
+}
+
+/* Submit button */
+.btn-primary {
+  width: 100%;
+  padding: 14px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: var(--space-lg);
+  transition: opacity 0.15s ease;
+}
+
+.btn-primary:active { opacity: 0.85; }
+
+.btn-danger {
+  width: 100%;
+  padding: 14px;
+  background: none;
+  color: #E74C3C;
+  border: 1px solid #E74C3C;
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: var(--space-sm);
+}
+
+/* ===== Stats View ===== */
+.stats-header { margin-bottom: var(--space-lg); }
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.stat-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.stat-card-header .habit-emoji { font-size: 22px; width: 32px; height: 32px; }
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-xs) 0;
+}
+
+.stat-label { font-size: 13px; color: var(--text-secondary); }
+.stat-value { font-size: 14px; font-weight: 700; }
+
+.stat-streaks {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-sm);
+}
+
+.stat-streak-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  padding: var(--space-sm);
+  background: var(--surface-raised);
+  border-radius: var(--radius-sm);
+}
+
+.stat-streak-num { font-size: 20px; font-weight: 700; }
+.stat-streak-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+/* Period toggle */
+.period-toggle {
+  display: flex;
+  background: var(--surface-raised);
+  border-radius: var(--radius-full);
+  padding: 3px;
+  margin-bottom: var(--space-md);
+}
+
+.period-btn {
+  flex: 1;
+  padding: 6px 12px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.period-btn.active {
+  background: var(--primary);
+  color: white;
+}
+
+/* Heatmap */
+.heatmap-section {
+  margin-top: var(--space-lg);
+}
+
+.heatmap-section h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: var(--space-sm);
+}
+
+.heatmap-container {
+  overflow-x: auto;
+  padding: var(--space-sm) 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.heatmap-grid {
+  display: grid;
+  grid-template-rows: repeat(7, 1fr);
+  grid-auto-flow: column;
+  gap: 3px;
+  width: max-content;
+}
+
+.heatmap-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--surface-raised);
+}
+
+.heatmap-cell.level-1 { background: rgba(108, 99, 255, 0.25); }
+.heatmap-cell.level-2 { background: rgba(108, 99, 255, 0.5); }
+.heatmap-cell.level-3 { background: rgba(108, 99, 255, 0.75); }
+.heatmap-cell.level-4 { background: var(--primary); }
+
+/* ===== Settings View ===== */
+.settings-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: var(--space-md);
+}
+
+.settings-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  min-height: 52px;
+}
+
+.settings-item:last-child { border-bottom: none; }
+.settings-item:active { background: var(--surface-raised); }
+
+.settings-item-label {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.settings-item-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* Toggle switch */
+.toggle {
+  width: 48px;
+  height: 28px;
+  background: var(--border);
+  border-radius: var(--radius-full);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.toggle.on { background: var(--primary); }
+
+.toggle-knob {
+  width: 22px;
+  height: 22px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.2s ease;
+}
+
+.toggle.on .toggle-knob { transform: translateX(20px); }
+
+/* Settings section title */
+.settings-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: var(--space-md) var(--space-md) var(--space-sm);
+}
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed;
+  top: calc(var(--space-md) + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%) translateY(-100px);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  padding: 12px var(--space-lg);
+  border-radius: var(--radius-full);
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 500;
+  white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ===== Import Modal ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  padding: var(--space-md);
+}
+
+.modal-overlay.show { opacity: 1; pointer-events: all; }
+
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  width: 100%;
+  max-width: 340px;
+  transform: scale(0.9);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-overlay.show .modal { transform: scale(1); }
+
+.modal-title { font-size: 18px; font-weight: 700; margin-bottom: var(--space-sm); }
+.modal-text { font-size: 14px; color: var(--text-secondary); margin-bottom: var(--space-lg); line-height: 1.5; }
+
+.modal-actions { display: flex; gap: var(--space-sm); }
+
+.modal-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s ease;
+}
+
+.modal-btn:active { opacity: 0.8; }
+.modal-btn.primary { background: var(--primary); color: white; }
+.modal-btn.secondary { background: var(--surface-raised); color: var(--text-primary); }
+.modal-btn.cancel { background: none; color: var(--text-secondary); border: 1px solid var(--border); }
+
+/* ===== Onboarding ===== */
+.onboarding {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  text-align: center;
+}
+
+.onboarding.hidden { display: none; }
+
+.onboarding-mascot { margin-bottom: var(--space-lg); }
+
+.onboarding h1 {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: var(--space-sm);
+}
+
+.onboarding p {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xl);
+  max-width: 280px;
+}
+
+.onboarding .btn-primary {
+  width: auto;
+  padding: 14px 40px;
+  border-radius: var(--radius-full);
+}
+
+.onboarding-step-2 { display: none; }
+
+.onboarding-step-2 .form-group {
+  text-align: left;
+  width: 100%;
+  max-width: 320px;
+}
+
+/* ===== Celebration Overlay ===== */
+.celebration-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 15, 26, 0.85);
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.celebration-overlay.show {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.celebration-text {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--success);
+  margin-top: var(--space-lg);
+}
+
+/* ===== Attribution ===== */
+.attribution {
+  text-align: center;
+  padding: var(--space-lg) var(--space-md);
+  font-size: 11px;
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+.attribution a {
+  color: var(--text-secondary);
+  text-decoration: underline;
+}
+
+/* Hidden file input */
+.hidden-input { display: none; }
+
+/* ===== Manage Habits (in Settings) ===== */
+.manage-habit-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--border);
+}
+
+.manage-habit-item:last-child { border-bottom: none; }
+
+.manage-habit-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1;
+  min-width: 0;
+}
+
+.manage-habit-left span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 15px;
+}
+
+.manage-actions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.manage-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.manage-btn:active { opacity: 0.7; }
+.manage-btn.danger { color: #E74C3C; }
+</style>
+</head>
+<body>
+
+<!-- Onboarding -->
+<div class="onboarding" id="onboarding">
+  <div class="onboarding-step-1" id="onboarding-step-1">
+    <div class="onboarding-mascot" id="onboarding-mascot-anim"></div>
+    <h1>Build habits that stick 🦙</h1>
+    <p>Track your daily habits, build streaks, and celebrate your progress</p>
+    <button class="btn-primary" id="onboarding-start" aria-label="Get started">Get Started</button>
+  </div>
+  <div class="onboarding-step-2" id="onboarding-step-2">
+    <h1 style="font-size:22px; margin-bottom: var(--space-lg);">Add your first habit</h1>
+    <div class="form-group">
+      <label class="form-label">Habit Name</label>
+      <input class="form-input" id="onboarding-name" type="text" placeholder="e.g. Morning Run" maxlength="40" aria-label="Habit name">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Pick an Emoji</label>
+      <div class="emoji-grid" id="onboarding-emojis"></div>
+    </div>
+    <button class="btn-primary" id="onboarding-add" aria-label="Add habit">Add Habit</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Celebration Overlay -->
+<div class="celebration-overlay" id="celebration-overlay">
+  <div id="celebration-mascot"></div>
+  <div class="celebration-text">All done! 🎉</div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal-overlay" id="import-modal">
+  <div class="modal">
+    <div class="modal-title">Import Data</div>
+    <div class="modal-text">How would you like to handle the imported data?</div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" id="import-cancel" aria-label="Cancel import">Cancel</button>
+      <button class="modal-btn secondary" id="import-merge" aria-label="Merge data">Merge</button>
+      <button class="modal-btn primary" id="import-replace" aria-label="Replace data">Replace</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal">
+    <div class="modal-title">Delete Habit</div>
+    <div class="modal-text" id="delete-modal-text">Are you sure you want to delete this habit? This cannot be undone.</div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" id="delete-cancel" aria-label="Cancel delete">Cancel</button>
+      <button class="modal-btn primary" id="delete-confirm" aria-label="Confirm delete" style="background:#E74C3C;">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <div>
+    <div class="title" id="header-title">Today</div>
+    <div class="header-date" id="header-date"></div>
+  </div>
+</div>
+
+<!-- Today View -->
+<div class="view active" id="view-today">
+  <div class="mascot-container" id="mascot-area"></div>
+  <div class="completion-msg" id="completion-msg">All done! 🎉</div>
+  <div class="habits-list" id="habits-list"></div>
+  <div class="empty-state" id="empty-state" style="display:none;">
+    <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="10" y="16" width="60" height="48" rx="8" stroke="currentColor" stroke-width="2" fill="none"/>
+      <line x1="10" y1="30" x2="70" y2="30" stroke="currentColor" stroke-width="2"/>
+      <circle cx="28" cy="44" r="6" stroke="currentColor" stroke-width="2"/>
+      <path d="M25 44l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="52" cy="44" r="6" stroke="currentColor" stroke-width="2"/>
+    </svg>
+    <h3>No habits yet</h3>
+    <p>Add your first habit to get started on your journey</p>
+    <button id="empty-add-btn" aria-label="Add your first habit">Add your first habit →</button>
+  </div>
+</div>
+
+<!-- Stats View -->
+<div class="view" id="view-stats">
+  <div class="stats-header">
+    <div class="period-toggle">
+      <button class="period-btn active" data-period="7" aria-label="7 day stats">7 days</button>
+      <button class="period-btn" data-period="30" aria-label="30 day stats">30 days</button>
+      <button class="period-btn" data-period="90" aria-label="90 day stats">90 days</button>
+    </div>
+  </div>
+  <div id="stats-content"></div>
+  <div class="heatmap-section">
+    <h3>Activity</h3>
+    <div class="heatmap-container">
+      <div class="heatmap-grid" id="heatmap-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings View -->
+<div class="view" id="view-settings">
+  <div class="settings-section-title">Appearance</div>
+  <div class="settings-group">
+    <div class="settings-item" id="theme-toggle-item">
+      <div>
+        <div class="settings-item-label">Light Mode</div>
+        <div class="settings-item-desc">Switch between dark and light themes</div>
+      </div>
+      <div class="toggle" id="theme-toggle" role="switch" aria-label="Toggle light mode">
+        <div class="toggle-knob"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-section-title">Manage Habits</div>
+  <div class="settings-group" id="manage-habits-list"></div>
+
+  <div class="settings-section-title">Data</div>
+  <div class="settings-group">
+    <div class="settings-item" id="export-json-btn">
+      <div>
+        <div class="settings-item-label">Export Data (JSON)</div>
+        <div class="settings-item-desc">Download a backup of all your habit data</div>
+      </div>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    </div>
+    <div class="settings-item" id="export-csv-btn">
+      <div>
+        <div class="settings-item-label">Export as CSV</div>
+        <div class="settings-item-desc">Download completions in spreadsheet format</div>
+      </div>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    </div>
+    <div class="settings-item" id="import-btn">
+      <div>
+        <div class="settings-item-label">Import Data</div>
+        <div class="settings-item-desc">Restore from a JSON backup file</div>
+      </div>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    </div>
+  </div>
+
+  <input type="file" accept=".json" class="hidden-input" id="import-file-input">
+
+  <div class="attribution">
+    <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fab" aria-label="Add new habit">+</button>
+
+<!-- Add/Edit Sheet -->
+<div class="sheet-overlay" id="sheet-overlay"></div>
+<div class="sheet" id="habit-sheet">
+  <button class="sheet-close" id="sheet-close" aria-label="Close">×</button>
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="sheet-title">New Habit</div>
+  <div class="form-group">
+    <label class="form-label">Name</label>
+    <input class="form-input" id="habit-name-input" type="text" placeholder="e.g. Morning Run" maxlength="40" aria-label="Habit name">
+  </div>
+  <div class="form-group">
+    <label class="form-label">Emoji</label>
+    <div class="emoji-grid" id="emoji-grid"></div>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Color</label>
+    <div class="color-swatches" id="color-swatches"></div>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Frequency</label>
+    <div class="freq-options" id="freq-options"></div>
+    <div class="day-chips" id="day-chips" style="display:none;"></div>
+    <div style="margin-top:var(--space-sm);display:none;" id="interval-input-wrap">
+      <input class="form-input" id="interval-input" type="number" min="2" max="30" value="2" placeholder="Every N days" aria-label="Interval in days" style="width:120px;">
+      <span class="subtext" style="margin-left:var(--space-sm);">days</span>
+    </div>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Daily Target (optional)</label>
+    <div class="target-row">
+      <input class="form-input" id="target-input" type="number" min="1" max="100" placeholder="e.g. 8" aria-label="Daily target count">
+      <span class="subtext">times per day (leave empty for simple toggle)</span>
+    </div>
+  </div>
+  <button class="btn-primary" id="save-habit-btn" aria-label="Save habit">Save Habit</button>
+  <button class="btn-danger" id="delete-habit-btn" aria-label="Delete habit" style="display:none;">Delete Habit</button>
+</div>
+
+<!-- Bottom Navigation -->
+<nav class="bottom-nav" aria-label="Main navigation">
+  <button class="nav-tab active" data-view="today" aria-label="Today view">
+    <div class="nav-indicator"></div>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>Today</span>
+  </button>
+  <button class="nav-tab" data-view="stats" aria-label="Stats view">
+    <div class="nav-indicator"></div>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <span>Stats</span>
+  </button>
+  <button class="nav-tab" data-view="settings" aria-label="Settings view">
+    <div class="nav-indicator"></div>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    <span>Settings</span>
+  </button>
+</nav>
+
+<script>
+// ===== Data Layer =====
+const STORAGE_KEY = 'habitTrackerData';
+const EMOJIS = ['🏃','💪','📚','💧','🧘','🎯','✍️','🍎','😴','🎵','🧹','💊','🚶','🌱','🧠','☀️','🏋️','🎨','📝','🍳','🧘‍♂️','🚴','🏊','🤸','💤','📖','🎸','🪴','🧑‍💻','☕'];
+const COLORS = ['#FF6B6B','#6C63FF','#43E97B','#FF6584','#F7971E','#00C9FF','#A18CD1','#FBC2EB'];
+const FREQ_OPTIONS = ['daily','weekdays','weekends','custom','interval'];
+const DAY_NAMES = ['S','M','T','W','T','F','S'];
+
+function getDefaultData() {
+  return { habits: [], settings: { theme: 'dark', accentColor: '#6C63FF', mascotStyle: 'llama' }, version: 1 };
+}
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function uuid() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function dateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function formatDate(d) {
+  const options = { weekday: 'long', month: 'long', day: 'numeric' };
+  return d.toLocaleDateString('en-US', options);
+}
+
+function dayOfWeek(dateString) {
+  return new Date(dateString + 'T12:00:00').getDay();
+}
+
+function isDueToday(habit) {
+  const today = new Date();
+  const dow = today.getDay();
+  switch (habit.frequency) {
+    case 'daily': return true;
+    case 'weekdays': return dow >= 1 && dow <= 5;
+    case 'weekends': return dow === 0 || dow === 6;
+    case 'custom': return (habit.customDays || []).includes(dow);
+    case 'interval': {
+      const created = new Date(habit.createdAt + 'T12:00:00');
+      const diff = Math.floor((today - created) / 86400000);
+      return diff % (habit.intervalDays || 2) === 0;
+    }
+    default: return true;
+  }
+}
+
+function isDueOnDate(habit, dateString) {
+  const d = new Date(dateString + 'T12:00:00');
+  const dow = d.getDay();
+  switch (habit.frequency) {
+    case 'daily': return true;
+    case 'weekdays': return dow >= 1 && dow <= 5;
+    case 'weekends': return dow === 0 || dow === 6;
+    case 'custom': return (habit.customDays || []).includes(dow);
+    case 'interval': {
+      const created = new Date(habit.createdAt + 'T12:00:00');
+      const diff = Math.floor((d - created) / 86400000);
+      return diff >= 0 && diff % (habit.intervalDays || 2) === 0;
+    }
+    default: return true;
+  }
+}
+
+function calcStreak(habit) {
+  let streak = 0;
+  const d = new Date();
+  const td = todayStr();
+  // Start from today
+  for (let i = 0; i < 365; i++) {
+    const ds = dateStr(d);
+    if (isDueOnDate(habit, ds)) {
+      if (habit.targetCount) {
+        const count = habit.completions[ds];
+        if (typeof count === 'number' && count >= habit.targetCount) {
+          streak++;
+        } else if (ds === td) {
+          // Today not yet complete is ok for streak
+        } else {
+          break;
+        }
+      } else {
+        if (habit.completions[ds]) {
+          streak++;
+        } else if (ds === td) {
+          // Today not yet complete is ok
+        } else {
+          break;
+        }
+      }
+    }
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+
+function missedYesterday(habit) {
+  const y = new Date();
+  y.setDate(y.getDate() - 1);
+  const ys = dateStr(y);
+  if (!isDueOnDate(habit, ys)) return false;
+  if (habit.targetCount) {
+    const count = habit.completions[ys];
+    return !(typeof count === 'number' && count >= habit.targetCount);
+  }
+  return !habit.completions[ys];
+}
+
+// ===== App State =====
+let appData = loadData() || getDefaultData();
+let currentView = 'today';
+let editingHabitId = null;
+let selectedEmoji = '🏃';
+let selectedColor = COLORS[0];
+let selectedFreq = 'daily';
+let selectedDays = [];
+let statsPeriod = 7;
+let pendingImportData = null;
+let deleteHabitId = null;
+
+// ===== Init =====
+function init() {
+  // Apply theme
+  if (appData.settings.theme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+
+  // Check if first launch
+  if (!loadData()) {
+    document.getElementById('onboarding').classList.remove('hidden');
+    renderOnboardingMascot();
+    renderOnboardingEmojis();
+  } else {
+    document.getElementById('onboarding').classList.add('hidden');
+    renderApp();
+  }
+
+  setupNav();
+  setupFAB();
+  setupSheet();
+  setupSettings();
+  setupImport();
+  setupDeleteModal();
+  updateDateHeader();
+  registerSW();
+  injectManifest();
+}
+
+function renderApp() {
+  renderTodayView();
+  renderStatsView();
+  renderSettingsManageList();
+}
+
+// ===== PWA =====
+function registerSW() {
+  if ('serviceWorker' in navigator) {
+    const swCode = `
+      self.addEventListener('install', e => self.skipWaiting());
+      self.addEventListener('activate', e => e.waitUntil(clients.claim()));
+      self.addEventListener('fetch', e => {
+        e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+      });
+    `;
+    const blob = new Blob([swCode], { type: 'application/javascript' });
+    navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+  }
+}
+
+function injectManifest() {
+  const manifest = {
+    name: "Habit Tracker",
+    short_name: "Habits",
+    start_url: ".",
+    display: "standalone",
+    background_color: "#0F0F1A",
+    theme_color: "#6C63FF",
+    icons: [{
+      src: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="40" fill="#6C63FF"/><text x="96" y="130" font-size="100" text-anchor="middle" fill="white">🦙</text></svg>'),
+      sizes: "192x192",
+      type: "image/svg+xml"
+    }]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+  const link = document.createElement('link');
+  link.rel = 'manifest';
+  link.href = URL.createObjectURL(blob);
+  document.head.appendChild(link);
+}
+
+// ===== Date Header =====
+function updateDateHeader() {
+  document.getElementById('header-date').textContent = formatDate(new Date());
+}
+
+// ===== Navigation =====
+function setupNav() {
+  document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.addEventListener('click', () => switchView(tab.dataset.view));
+  });
+}
+
+function switchView(view) {
+  currentView = view;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(`view-${view}`).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.view === view);
+  });
+
+  const fab = document.getElementById('fab');
+  const title = document.getElementById('header-title');
+
+  if (view === 'today') {
+    fab.style.display = 'flex';
+    title.textContent = 'Today';
+  } else if (view === 'stats') {
+    fab.style.display = 'none';
+    title.textContent = 'Stats';
+    renderStatsView();
+  } else {
+    fab.style.display = 'none';
+    title.textContent = 'Settings';
+    renderSettingsManageList();
+  }
+}
+
+// ===== Mascot SVG =====
+function createMascotSVG(fillPercent, size = 120) {
+  fillPercent = Math.max(0, Math.min(100, fillPercent));
+  // Llama silhouette
+  const h = size * 1.17;
+  const fillH = (fillPercent / 100) * h * 0.75;
+  const fillY = h - fillH - h * 0.08;
+
+  // Color based on fill
+  let fillColor = '#4a4a6a';
+  if (fillPercent > 0 && fillPercent < 50) fillColor = '#6C63FF';
+  else if (fillPercent >= 50 && fillPercent < 100) fillColor = '#43E97B';
+  else if (fillPercent >= 100) fillColor = '#FFD700';
+
+  return `<svg viewBox="0 0 ${size} ${h}" class="mascot-svg" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <clipPath id="llama-clip">
+        <path d="M35 ${h*0.15} C35 ${h*0.08} 38 ${h*0.02} 42 ${h*0.02}
+                 C46 ${h*0.02} 48 ${h*0.06} 48 ${h*0.13}
+                 L48 ${h*0.28}
+                 C48 ${h*0.28} 55 ${h*0.22} 68 ${h*0.22}
+                 C82 ${h*0.22} 90 ${h*0.28} 90 ${h*0.38}
+                 L90 ${h*0.78}
+                 C90 ${h*0.85} 85 ${h*0.92} 78 ${h*0.92}
+                 L42 ${h*0.92}
+                 C35 ${h*0.92} 30 ${h*0.85} 30 ${h*0.78}
+                 L30 ${h*0.45}
+                 C30 ${h*0.35} 35 ${h*0.28} 35 ${h*0.28} Z"/>
+      </clipPath>
+    </defs>
+    <!-- Body outline -->
+    <path d="M35 ${h*0.15} C35 ${h*0.08} 38 ${h*0.02} 42 ${h*0.02}
+             C46 ${h*0.02} 48 ${h*0.06} 48 ${h*0.13}
+             L48 ${h*0.28}
+             C48 ${h*0.28} 55 ${h*0.22} 68 ${h*0.22}
+             C82 ${h*0.22} 90 ${h*0.28} 90 ${h*0.38}
+             L90 ${h*0.78}
+             C90 ${h*0.85} 85 ${h*0.92} 78 ${h*0.92}
+             L42 ${h*0.92}
+             C35 ${h*0.92} 30 ${h*0.85} 30 ${h*0.78}
+             L30 ${h*0.45}
+             C30 ${h*0.35} 35 ${h*0.28} 35 ${h*0.28} Z"
+          fill="none" stroke="var(--text-secondary)" stroke-width="2" opacity="0.4"/>
+    <!-- Fill -->
+    <g clip-path="url(#llama-clip)">
+      <rect class="mascot-fill-wave" x="25" y="${fillY}" width="${size}" height="${fillH + 10}"
+            fill="${fillColor}" opacity="0.6" rx="4"/>
+    </g>
+    <!-- Eyes -->
+    <circle cx="40" cy="${h*0.12}" r="2" fill="var(--text-primary)"/>
+    <!-- Ear -->
+    <path d="M36 ${h*0.08} L33 ${h*0.01} L39 ${h*0.04}" fill="none" stroke="var(--text-secondary)" stroke-width="1.5" opacity="0.4"/>
+    <!-- Legs -->
+    <line x1="40" y1="${h*0.92}" x2="40" y2="${h}" stroke="var(--text-secondary)" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+    <line x1="52" y1="${h*0.92}" x2="52" y2="${h}" stroke="var(--text-secondary)" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+    <line x1="72" y1="${h*0.92}" x2="72" y2="${h}" stroke="var(--text-secondary)" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+    <line x1="82" y1="${h*0.92}" x2="82" y2="${h}" stroke="var(--text-secondary)" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+  </svg>`;
+}
+
+// ===== Today View =====
+function renderTodayView() {
+  const today = todayStr();
+  const todayHabits = appData.habits.filter(h => !h.archived && isDueToday(h));
+  const listEl = document.getElementById('habits-list');
+  const emptyEl = document.getElementById('empty-state');
+  const mascotArea = document.getElementById('mascot-area');
+  const completionMsg = document.getElementById('completion-msg');
+
+  if (todayHabits.length === 0) {
+    listEl.innerHTML = '';
+    emptyEl.style.display = 'flex';
+    mascotArea.innerHTML = createMascotSVG(0);
+    completionMsg.classList.remove('show');
+    return;
+  }
+
+  emptyEl.style.display = 'none';
+
+  // Calculate completion %
+  let completed = 0;
+  todayHabits.forEach(h => {
+    if (h.targetCount) {
+      const count = h.completions[today];
+      if (typeof count === 'number' && count >= h.targetCount) completed++;
+    } else {
+      if (h.completions[today]) completed++;
+    }
+  });
+
+  const pct = Math.round((completed / todayHabits.length) * 100);
+  mascotArea.innerHTML = createMascotSVG(pct);
+
+  const allDone = completed === todayHabits.length;
+  completionMsg.classList.toggle('show', allDone);
+
+  // Render habit cards
+  listEl.innerHTML = todayHabits.map((h, i) => {
+    const isComplete = h.targetCount
+      ? (typeof h.completions[today] === 'number' && h.completions[today] >= h.targetCount)
+      : !!h.completions[today];
+    const streak = calcStreak(h);
+    const missed = missedYesterday(h);
+    const currentCount = h.targetCount ? (h.completions[today] || 0) : 0;
+
+    return `<div class="habit-card ${isComplete ? 'completed' : ''}"
+                 data-id="${h.id}"
+                 style="animation-delay: ${i * 0.05}s"
+                 aria-label="${h.name} habit card">
+      <div class="ripple-bg" style="background:${h.color}"></div>
+      <div class="habit-emoji">${h.emoji}</div>
+      <div class="habit-info">
+        <div class="habit-name">${escapeHTML(h.name)}</div>
+        ${missed && !isComplete ? '<div class="missed-indicator">Missed yesterday</div>' : ''}
+        ${h.targetCount ? `<div class="subtext">${currentCount} / ${h.targetCount}</div>` : ''}
+      </div>
+      <div class="habit-right">
+        ${streak > 0 ? `<div class="streak-badge" data-streak="${h.id}">🔥 ${streak}</div>` : ''}
+        ${h.targetCount ? `
+          <button class="counter-btn" data-action="decrement" data-id="${h.id}" aria-label="Decrease count">−</button>
+          <div class="counter-display ${isComplete ? 'at-goal' : ''}">${currentCount}</div>
+          <button class="counter-btn" data-action="increment" data-id="${h.id}" aria-label="Increase count" ${isComplete ? 'disabled' : ''}>+</button>
+        ` : `
+          <div class="check-circle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+        `}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Event listeners
+  listEl.querySelectorAll('.habit-card').forEach(card => {
+    const id = card.dataset.id;
+    const habit = appData.habits.find(h => h.id === id);
+
+    if (habit.targetCount) {
+      // Counter buttons
+      card.querySelectorAll('.counter-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const action = btn.dataset.action;
+          const today2 = todayStr();
+          const current = habit.completions[today2] || 0;
+          if (action === 'increment' && current < habit.targetCount) {
+            habit.completions[today2] = current + 1;
+            habit.streak = calcStreak(habit);
+            habit.longestStreak = Math.max(habit.longestStreak || 0, habit.streak);
+            saveData(appData);
+            renderTodayView();
+            if (habit.completions[today2] === habit.targetCount) {
+              fireMiniConfetti(card);
+              checkAllDone();
+            }
+          } else if (action === 'decrement' && current > 0) {
+            habit.completions[today2] = current - 1;
+            if (habit.completions[today2] === 0) delete habit.completions[today2];
+            habit.streak = calcStreak(habit);
+            saveData(appData);
+            renderTodayView();
+          }
+        });
+      });
+
+      // Long press for edit
+      let longPressTimer;
+      card.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('.counter-btn')) return;
+        longPressTimer = setTimeout(() => openEditSheet(id), 500);
+      });
+      card.addEventListener('pointerup', () => clearTimeout(longPressTimer));
+      card.addEventListener('pointerleave', () => clearTimeout(longPressTimer));
+    } else {
+      // Toggle
+      card.addEventListener('click', () => {
+        const today2 = todayStr();
+        if (habit.completions[today2]) {
+          delete habit.completions[today2];
+        } else {
+          habit.completions[today2] = true;
+          fireMiniConfetti(card);
+          const badge = card.querySelector('.streak-badge');
+          if (badge) badge.classList.add('streak-pop');
+        }
+        habit.streak = calcStreak(habit);
+        habit.longestStreak = Math.max(habit.longestStreak || 0, habit.streak);
+        saveData(appData);
+        renderTodayView();
+        if (habit.completions[today2]) checkAllDone();
+      });
+
+      // Long press for edit
+      let longPressTimer;
+      card.addEventListener('pointerdown', () => {
+        longPressTimer = setTimeout(() => openEditSheet(id), 500);
+      });
+      card.addEventListener('pointerup', () => clearTimeout(longPressTimer));
+      card.addEventListener('pointerleave', () => clearTimeout(longPressTimer));
+    }
+  });
+}
+
+function checkAllDone() {
+  const today = todayStr();
+  const todayHabits = appData.habits.filter(h => !h.archived && isDueToday(h));
+  const allComplete = todayHabits.every(h => {
+    if (h.targetCount) {
+      return typeof h.completions[today] === 'number' && h.completions[today] >= h.targetCount;
+    }
+    return !!h.completions[today];
+  });
+
+  if (allComplete && todayHabits.length > 0) {
+    showCelebration();
+  }
+}
+
+function showCelebration() {
+  const overlay = document.getElementById('celebration-overlay');
+  const mascotEl = document.getElementById('celebration-mascot');
+  mascotEl.innerHTML = createMascotSVG(100);
+  overlay.classList.add('show');
+
+  // Mascot dance
+  const svg = mascotEl.querySelector('.mascot-svg');
+  if (svg) svg.classList.add('mascot-celebrate');
+
+  // Full confetti
+  fireFullConfetti();
+
+  setTimeout(() => {
+    overlay.classList.remove('show');
+    if (svg) svg.classList.remove('mascot-celebrate');
+  }, 3000);
+}
+
+// ===== Confetti =====
+function fireMiniConfetti(card) {
+  const rect = card.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const colors = ['#FF6B6B','#6C63FF','#43E97B','#FF6584','#F7971E','#00C9FF','#FFD700'];
+
+  for (let i = 0; i < 10; i++) {
+    const el = document.createElement('div');
+    el.className = 'mini-confetti';
+    el.style.background = colors[Math.floor(Math.random() * colors.length)];
+    el.style.left = cx + 'px';
+    el.style.top = cy + 'px';
+    const angle = (Math.PI * 2 * i) / 10;
+    const dist = 30 + Math.random() * 40;
+    const tx = Math.cos(angle) * dist;
+    const ty = Math.sin(angle) * dist;
+    el.style.setProperty('--tx', tx + 'px');
+    el.style.setProperty('--ty', ty + 'px');
+    el.style.animationName = 'none';
+    document.body.appendChild(el);
+
+    // Animate manually since we need custom endpoint
+    el.animate([
+      { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+      { transform: `translate(${tx}px, ${ty}px) scale(0.3)`, opacity: 0 }
+    ], { duration: 500, easing: 'ease-out', fill: 'forwards' });
+
+    setTimeout(() => el.remove(), 600);
+  }
+}
+
+function fireFullConfetti() {
+  const container = document.createElement('div');
+  container.className = 'confetti-container';
+  document.body.appendChild(container);
+  const colors = ['#FF6B6B','#6C63FF','#43E97B','#FF6584','#F7971E','#00C9FF','#FFD700','#A18CD1'];
+
+  for (let i = 0; i < 40; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.left = Math.random() * 100 + '%';
+    piece.style.animationDelay = Math.random() * 1 + 's';
+    piece.style.animationDuration = (2 + Math.random() * 1.5) + 's';
+    if (Math.random() > 0.5) {
+      piece.style.borderRadius = '50%';
+      piece.style.width = '6px';
+      piece.style.height = '6px';
+    }
+    container.appendChild(piece);
+  }
+
+  setTimeout(() => container.remove(), 4000);
+}
+
+// ===== FAB & Sheet =====
+function setupFAB() {
+  document.getElementById('fab').addEventListener('click', () => openAddSheet());
+  document.getElementById('empty-add-btn').addEventListener('click', () => openAddSheet());
+}
+
+function openAddSheet() {
+  editingHabitId = null;
+  document.getElementById('sheet-title').textContent = 'New Habit';
+  document.getElementById('habit-name-input').value = '';
+  selectedEmoji = EMOJIS[0];
+  selectedColor = COLORS[0];
+  selectedFreq = 'daily';
+  selectedDays = [];
+  document.getElementById('target-input').value = '';
+  document.getElementById('interval-input').value = '2';
+  document.getElementById('delete-habit-btn').style.display = 'none';
+  renderSheetForm();
+  showSheet();
+}
+
+function openEditSheet(id) {
+  const habit = appData.habits.find(h => h.id === id);
+  if (!habit) return;
+  editingHabitId = id;
+  document.getElementById('sheet-title').textContent = 'Edit Habit';
+  document.getElementById('habit-name-input').value = habit.name;
+  selectedEmoji = habit.emoji;
+  selectedColor = habit.color;
+  selectedFreq = habit.frequency;
+  selectedDays = habit.customDays ? [...habit.customDays] : [];
+  document.getElementById('target-input').value = habit.targetCount || '';
+  document.getElementById('interval-input').value = habit.intervalDays || 2;
+  document.getElementById('delete-habit-btn').style.display = 'block';
+  renderSheetForm();
+  showSheet();
+}
+
+function setupSheet() {
+  const overlay = document.getElementById('sheet-overlay');
+  overlay.addEventListener('click', hideSheet);
+  document.getElementById('sheet-close').addEventListener('click', hideSheet);
+
+  document.getElementById('save-habit-btn').addEventListener('click', saveHabit);
+  document.getElementById('delete-habit-btn').addEventListener('click', () => {
+    if (editingHabitId) {
+      deleteHabitId = editingHabitId;
+      const habit = appData.habits.find(h => h.id === editingHabitId);
+      document.getElementById('delete-modal-text').textContent =
+        `Are you sure you want to delete "${habit ? habit.name : 'this habit'}"? This cannot be undone.`;
+      document.getElementById('delete-modal').classList.add('show');
+    }
+  });
+
+  renderEmojiGrid('emoji-grid');
+  renderColorSwatches();
+  renderFreqOptions();
+}
+
+function showSheet() {
+  document.getElementById('sheet-overlay').classList.add('show');
+  document.getElementById('habit-sheet').classList.add('show');
+}
+
+function hideSheet() {
+  document.getElementById('sheet-overlay').classList.remove('show');
+  document.getElementById('habit-sheet').classList.remove('show');
+}
+
+function renderSheetForm() {
+  // Update emoji selection
+  document.querySelectorAll('#emoji-grid .emoji-option').forEach(el => {
+    el.classList.toggle('selected', el.dataset.emoji === selectedEmoji);
+  });
+  // Update color selection
+  document.querySelectorAll('#color-swatches .color-swatch').forEach(el => {
+    el.classList.toggle('selected', el.dataset.color === selectedColor);
+  });
+  // Update freq
+  document.querySelectorAll('#freq-options .freq-option').forEach(el => {
+    el.classList.toggle('selected', el.dataset.freq === selectedFreq);
+  });
+  // Day chips visibility
+  document.getElementById('day-chips').style.display = selectedFreq === 'custom' ? 'flex' : 'none';
+  document.getElementById('interval-input-wrap').style.display = selectedFreq === 'interval' ? 'block' : 'none';
+  // Render day chips
+  renderDayChips();
+}
+
+function renderEmojiGrid(containerId) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = EMOJIS.map(e =>
+    `<div class="emoji-option ${e === selectedEmoji ? 'selected' : ''}" data-emoji="${e}" aria-label="${e}">${e}</div>`
+  ).join('');
+
+  container.querySelectorAll('.emoji-option').forEach(el => {
+    el.addEventListener('click', () => {
+      selectedEmoji = el.dataset.emoji;
+      container.querySelectorAll('.emoji-option').forEach(o => o.classList.remove('selected'));
+      el.classList.add('selected');
+    });
+  });
+}
+
+function renderColorSwatches() {
+  const container = document.getElementById('color-swatches');
+  container.innerHTML = COLORS.map(c =>
+    `<div class="color-swatch ${c === selectedColor ? 'selected' : ''}" data-color="${c}" style="background:${c}" aria-label="Color ${c}"></div>`
+  ).join('');
+
+  container.querySelectorAll('.color-swatch').forEach(el => {
+    el.addEventListener('click', () => {
+      selectedColor = el.dataset.color;
+      container.querySelectorAll('.color-swatch').forEach(o => o.classList.remove('selected'));
+      el.classList.add('selected');
+    });
+  });
+}
+
+function renderFreqOptions() {
+  const container = document.getElementById('freq-options');
+  const labels = { daily: 'Daily', weekdays: 'Weekdays', weekends: 'Weekends', custom: 'Custom', interval: 'Every N days' };
+  container.innerHTML = FREQ_OPTIONS.map(f =>
+    `<div class="freq-option ${f === selectedFreq ? 'selected' : ''}" data-freq="${f}">${labels[f]}</div>`
+  ).join('');
+
+  container.querySelectorAll('.freq-option').forEach(el => {
+    el.addEventListener('click', () => {
+      selectedFreq = el.dataset.freq;
+      renderSheetForm();
+    });
+  });
+}
+
+function renderDayChips() {
+  const container = document.getElementById('day-chips');
+  container.innerHTML = DAY_NAMES.map((name, i) =>
+    `<div class="day-chip ${selectedDays.includes(i) ? 'selected' : ''}" data-day="${i}">${name}</div>`
+  ).join('');
+
+  container.querySelectorAll('.day-chip').forEach(el => {
+    el.addEventListener('click', () => {
+      const day = parseInt(el.dataset.day);
+      if (selectedDays.includes(day)) {
+        selectedDays = selectedDays.filter(d => d !== day);
+      } else {
+        selectedDays.push(day);
+      }
+      el.classList.toggle('selected');
+    });
+  });
+}
+
+function saveHabit() {
+  const name = document.getElementById('habit-name-input').value.trim();
+  if (!name) {
+    showToast('⚠️ Please enter a habit name');
+    return;
+  }
+
+  const targetVal = parseInt(document.getElementById('target-input').value);
+  const intervalVal = parseInt(document.getElementById('interval-input').value);
+
+  if (editingHabitId) {
+    const habit = appData.habits.find(h => h.id === editingHabitId);
+    if (habit) {
+      habit.name = name;
+      habit.emoji = selectedEmoji;
+      habit.color = selectedColor;
+      habit.frequency = selectedFreq;
+      habit.customDays = selectedFreq === 'custom' ? [...selectedDays] : [];
+      habit.intervalDays = selectedFreq === 'interval' ? (intervalVal || 2) : undefined;
+      habit.targetCount = targetVal > 0 ? targetVal : undefined;
+      habit.streak = calcStreak(habit);
+      habit.longestStreak = Math.max(habit.longestStreak || 0, habit.streak);
+    }
+  } else {
+    const newHabit = {
+      id: uuid(),
+      name,
+      emoji: selectedEmoji,
+      color: selectedColor,
+      frequency: selectedFreq,
+      customDays: selectedFreq === 'custom' ? [...selectedDays] : [],
+      intervalDays: selectedFreq === 'interval' ? (intervalVal || 2) : undefined,
+      createdAt: todayStr(),
+      completions: {},
+      streak: 0,
+      longestStreak: 0,
+      archived: false,
+      targetCount: targetVal > 0 ? targetVal : undefined
+    };
+    appData.habits.push(newHabit);
+  }
+
+  saveData(appData);
+  hideSheet();
+  renderApp();
+  showToast(editingHabitId ? '✅ Habit updated!' : '✅ Habit added!');
+}
+
+// ===== Delete Modal =====
+function setupDeleteModal() {
+  document.getElementById('delete-cancel').addEventListener('click', () => {
+    document.getElementById('delete-modal').classList.remove('show');
+    deleteHabitId = null;
+  });
+
+  document.getElementById('delete-confirm').addEventListener('click', () => {
+    if (deleteHabitId) {
+      appData.habits = appData.habits.filter(h => h.id !== deleteHabitId);
+      saveData(appData);
+      deleteHabitId = null;
+      document.getElementById('delete-modal').classList.remove('show');
+      hideSheet();
+      renderApp();
+      showToast('🗑️ Habit deleted');
+    }
+  });
+}
+
+// ===== Stats View =====
+function renderStatsView() {
+  const container = document.getElementById('stats-content');
+  const habits = appData.habits.filter(h => !h.archived);
+
+  if (habits.length === 0) {
+    container.innerHTML = '<div class="empty-state"><h3>No habits to show</h3><p>Add some habits to see your stats</p></div>';
+    renderHeatmap();
+    return;
+  }
+
+  container.innerHTML = habits.map(h => {
+    const streak = calcStreak(h);
+    const longest = h.longestStreak || 0;
+    const rate = calcCompletionRate(h, statsPeriod);
+    const totalCompletions = Object.keys(h.completions).length;
+
+    return `<div class="stat-card">
+      <div class="stat-card-header">
+        <div class="habit-emoji">${h.emoji}</div>
+        <div class="habit-name">${escapeHTML(h.name)}</div>
+      </div>
+      <div class="stat-streaks">
+        <div class="stat-streak-item">
+          <div class="stat-streak-num" style="color:var(--secondary);">🔥 ${streak}</div>
+          <div class="stat-streak-label">Current</div>
+        </div>
+        <div class="stat-streak-item">
+          <div class="stat-streak-num" style="color:var(--primary);">⭐ ${longest}</div>
+          <div class="stat-streak-label">Longest</div>
+        </div>
+        <div class="stat-streak-item">
+          <div class="stat-streak-num" style="color:var(--success);">${rate}%</div>
+          <div class="stat-streak-label">${statsPeriod}d rate</div>
+        </div>
+        <div class="stat-streak-item">
+          <div class="stat-streak-num">${totalCompletions}</div>
+          <div class="stat-streak-label">Total</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  renderHeatmap();
+
+  // Period toggle events
+  document.querySelectorAll('.period-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      statsPeriod = parseInt(btn.dataset.period);
+      document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderStatsView();
+    });
+  });
+}
+
+function calcCompletionRate(habit, days) {
+  let due = 0;
+  let done = 0;
+  const d = new Date();
+  for (let i = 0; i < days; i++) {
+    const ds = dateStr(d);
+    if (isDueOnDate(habit, ds)) {
+      due++;
+      if (habit.targetCount) {
+        const count = habit.completions[ds];
+        if (typeof count === 'number' && count >= habit.targetCount) done++;
+      } else {
+        if (habit.completions[ds]) done++;
+      }
+    }
+    d.setDate(d.getDate() - 1);
+  }
+  return due === 0 ? 0 : Math.round((done / due) * 100);
+}
+
+function renderHeatmap() {
+  const grid = document.getElementById('heatmap-grid');
+  const habits = appData.habits.filter(h => !h.archived);
+  const cells = [];
+
+  // 52 weeks × 7 days
+  const today = new Date();
+  const startDate = new Date(today);
+  startDate.setDate(startDate.getDate() - 363); // ~52 weeks back
+  // Align to Sunday
+  startDate.setDate(startDate.getDate() - startDate.getDay());
+
+  const d = new Date(startDate);
+  for (let col = 0; col < 53; col++) {
+    for (let row = 0; row < 7; row++) {
+      const ds = dateStr(d);
+      const future = d > today;
+      let level = 0;
+      if (!future && habits.length > 0) {
+        let dueCount = 0;
+        let doneCount = 0;
+        habits.forEach(h => {
+          if (isDueOnDate(h, ds) && new Date(h.createdAt + 'T12:00:00') <= d) {
+            dueCount++;
+            if (h.targetCount) {
+              if (typeof h.completions[ds] === 'number' && h.completions[ds] >= h.targetCount) doneCount++;
+            } else {
+              if (h.completions[ds]) doneCount++;
+            }
+          }
+        });
+        if (dueCount > 0) {
+          const pct = doneCount / dueCount;
+          if (pct > 0 && pct <= 0.25) level = 1;
+          else if (pct > 0.25 && pct <= 0.5) level = 2;
+          else if (pct > 0.5 && pct < 1) level = 3;
+          else if (pct >= 1) level = 4;
+        }
+      }
+      cells.push(`<div class="heatmap-cell ${future ? '' : 'level-' + level}" title="${ds}"></div>`);
+      d.setDate(d.getDate() + 1);
+    }
+  }
+
+  grid.innerHTML = cells.join('');
+}
+
+// ===== Settings =====
+function setupSettings() {
+  // Theme toggle
+  const toggle = document.getElementById('theme-toggle');
+  const toggleItem = document.getElementById('theme-toggle-item');
+  if (appData.settings.theme === 'light') toggle.classList.add('on');
+
+  toggleItem.addEventListener('click', () => {
+    toggle.classList.toggle('on');
+    const isLight = toggle.classList.contains('on');
+    appData.settings.theme = isLight ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', isLight ? 'light' : '');
+    if (!isLight) document.documentElement.removeAttribute('data-theme');
+    saveData(appData);
+  });
+
+  // Export JSON
+  document.getElementById('export-json-btn').addEventListener('click', () => {
+    const dataStr = JSON.stringify(appData, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    downloadBlob(blob, `habits-backup-${todayStr()}.json`);
+    showToast('📦 JSON exported!');
+  });
+
+  // Export CSV
+  document.getElementById('export-csv-btn').addEventListener('click', () => {
+    let csv = 'habit_name,date,completed\n';
+    appData.habits.forEach(h => {
+      Object.keys(h.completions).sort().forEach(date => {
+        const val = h.completions[date];
+        csv += `"${h.name}",${date},${typeof val === 'number' ? val : (val ? 'true' : 'false')}\n`;
+      });
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    downloadBlob(blob, `habits-${todayStr()}.csv`);
+    showToast('📊 CSV exported!');
+  });
+
+  // Import
+  document.getElementById('import-btn').addEventListener('click', () => {
+    document.getElementById('import-file-input').click();
+  });
+}
+
+function renderSettingsManageList() {
+  const container = document.getElementById('manage-habits-list');
+  const habits = appData.habits.filter(h => !h.archived);
+
+  if (habits.length === 0) {
+    container.innerHTML = '<div class="settings-item"><div class="settings-item-label" style="color:var(--text-secondary);font-size:14px;">No habits yet</div></div>';
+    return;
+  }
+
+  container.innerHTML = habits.map(h => `
+    <div class="manage-habit-item" data-id="${h.id}">
+      <div class="manage-habit-left">
+        <span>${h.emoji}</span>
+        <span>${escapeHTML(h.name)}</span>
+      </div>
+      <div class="manage-actions">
+        <button class="manage-btn" data-action="edit" data-id="${h.id}" aria-label="Edit ${h.name}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="manage-btn danger" data-action="delete" data-id="${h.id}" aria-label="Delete ${h.name}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+      </div>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('.manage-btn[data-action="edit"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      switchView('today');
+      setTimeout(() => openEditSheet(btn.dataset.id), 300);
+    });
+  });
+
+  container.querySelectorAll('.manage-btn[data-action="delete"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      deleteHabitId = btn.dataset.id;
+      const habit = appData.habits.find(h => h.id === btn.dataset.id);
+      document.getElementById('delete-modal-text').textContent =
+        `Are you sure you want to delete "${habit ? habit.name : 'this habit'}"? This cannot be undone.`;
+      document.getElementById('delete-modal').classList.add('show');
+    });
+  });
+}
+
+// ===== Import =====
+function setupImport() {
+  const fileInput = document.getElementById('import-file-input');
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data.habits || !Array.isArray(data.habits)) {
+          showToast('⚠️ Invalid file format');
+          return;
+        }
+        pendingImportData = data;
+        document.getElementById('import-modal').classList.add('show');
+      } catch {
+        showToast('⚠️ Invalid file format');
+      }
+    };
+    reader.readAsText(file);
+    fileInput.value = '';
+  });
+
+  document.getElementById('import-cancel').addEventListener('click', () => {
+    document.getElementById('import-modal').classList.remove('show');
+    pendingImportData = null;
+  });
+
+  document.getElementById('import-merge').addEventListener('click', () => {
+    if (pendingImportData) {
+      // Merge: add habits that don't exist, merge completions for existing
+      pendingImportData.habits.forEach(importedHabit => {
+        const existing = appData.habits.find(h => h.id === importedHabit.id);
+        if (existing) {
+          Object.assign(existing.completions, importedHabit.completions);
+          existing.streak = calcStreak(existing);
+          existing.longestStreak = Math.max(existing.longestStreak || 0, importedHabit.longestStreak || 0);
+        } else {
+          appData.habits.push(importedHabit);
+        }
+      });
+      saveData(appData);
+      renderApp();
+      showToast('✅ Data merged successfully!');
+    }
+    document.getElementById('import-modal').classList.remove('show');
+    pendingImportData = null;
+  });
+
+  document.getElementById('import-replace').addEventListener('click', () => {
+    if (pendingImportData) {
+      appData = pendingImportData;
+      if (!appData.settings) appData.settings = getDefaultData().settings;
+      saveData(appData);
+      // Re-apply theme
+      if (appData.settings.theme === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.getElementById('theme-toggle').classList.add('on');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        document.getElementById('theme-toggle').classList.remove('on');
+      }
+      renderApp();
+      showToast('✅ Data imported successfully!');
+    }
+    document.getElementById('import-modal').classList.remove('show');
+    pendingImportData = null;
+  });
+}
+
+// ===== Onboarding =====
+function renderOnboardingMascot() {
+  document.getElementById('onboarding-mascot-anim').innerHTML = createMascotSVG(60, 100);
+}
+
+function renderOnboardingEmojis() {
+  renderEmojiGrid('onboarding-emojis');
+}
+
+document.getElementById('onboarding-start').addEventListener('click', () => {
+  document.getElementById('onboarding-step-1').style.display = 'none';
+  document.getElementById('onboarding-step-2').style.display = 'flex';
+  document.getElementById('onboarding-step-2').style.flexDirection = 'column';
+  document.getElementById('onboarding-step-2').style.alignItems = 'center';
+});
+
+document.getElementById('onboarding-add').addEventListener('click', () => {
+  const name = document.getElementById('onboarding-name').value.trim();
+  if (!name) {
+    showToast('⚠️ Please enter a habit name');
+    return;
+  }
+
+  appData = getDefaultData();
+  appData.habits.push({
+    id: uuid(),
+    name,
+    emoji: selectedEmoji,
+    color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    frequency: 'daily',
+    customDays: [],
+    createdAt: todayStr(),
+    completions: {},
+    streak: 0,
+    longestStreak: 0,
+    archived: false
+  });
+  saveData(appData);
+  document.getElementById('onboarding').classList.add('hidden');
+  renderApp();
+  showToast('🎉 Welcome! Your first habit is ready');
+});
+
+// ===== Utilities =====
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function escapeHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ===== Boot =====
+init();
+</script>
+</body>
+</html>
