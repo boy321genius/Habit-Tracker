@@ -1174,7 +1174,7 @@ body {
 /* ===== Login Overlay ===== */
 .login-overlay {
   position: fixed; inset: 0; background: var(--bg);
-  z-index: 998; display: flex; flex-direction: column;
+  z-index: 1000; display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   padding: var(--space-xl); text-align: center;
   transition: opacity 0.3s ease;
@@ -1366,7 +1366,7 @@ body {
 </div>
 
 <!-- Onboarding -->
-<div class="onboarding" id="onboarding">
+<div class="onboarding hidden" id="onboarding">
   <div class="onboarding-step-1" id="onboarding-step-1">
     <div class="onboarding-mascot" id="onboarding-mascot-anim"></div>
     <h1>Build habits that stick ✨</h1>
@@ -1978,15 +1978,9 @@ function runInit() {
     document.documentElement.setAttribute('data-theme', 'light');
   }
 
-  // Check if first launch
-  if (!loadData()) {
-    document.getElementById('onboarding').classList.remove('hidden');
-    renderOnboardingMascot();
-    renderOnboardingEmojis();
-    renderMascotPicker('onboarding-mascot-picker', appData.settings.mascot || 'cat', id => {
-      appData.settings.mascot = id;
-      renderOnboardingMascot();
-    });
+  // Check if first launch (no saved data = brand new user)
+  if (appData.habits.length === 0 && !loadData()) {
+    showOnboarding();
   } else {
     document.getElementById('onboarding').classList.add('hidden');
     renderApp();
@@ -2004,17 +1998,32 @@ function runInit() {
   injectManifest();
 }
 
+function showOnboarding() {
+  document.getElementById('onboarding').classList.remove('hidden');
+  document.getElementById('onboarding-step-1').style.display = '';
+  document.getElementById('onboarding-step-2').style.display = 'none';
+  renderOnboardingMascot();
+  renderOnboardingEmojis();
+  renderMascotPicker('onboarding-mascot-picker', appData.settings.mascot || 'cat', id => {
+    appData.settings.mascot = id;
+    renderOnboardingMascot();
+  });
+}
+
 // init() now handles auth first, then defers to runInit() via bootApp()
 async function init() {
   setupAuth();
   renderLoginMascot();
 
+  // Always show login overlay first — it has highest z-index and covers onboarding
+  document.getElementById('login-overlay').classList.remove('hidden');
+
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) {
-    // No active session — show login overlay
-    document.getElementById('login-overlay').classList.remove('hidden');
+  if (session) {
+    // Session exists — onAuthStateChange will fire INITIAL_SESSION → bootApp()
+    // bootApp() will hide login-overlay
   }
-  // If session exists, onAuthStateChange will fire INITIAL_SESSION → bootApp()
+  // If no session, login overlay stays visible for user to sign in or skip
 }
 
 function renderApp() {
