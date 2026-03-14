@@ -46,7 +46,11 @@
 /* ===== Reset & Base ===== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body {
+html {
+  height: 100%;
+}
+
+body {
   height: 100%;
   font-family: var(--font);
   background: var(--bg);
@@ -64,10 +68,8 @@ body {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  height: 100dvh;          /* locks body to viewport — views scroll internally */
-  overflow: hidden;        /* body itself must NOT scroll; only .view scrolls */
-  position: relative;
+  min-height: 100vh;
+  background: var(--bg);
 }
 
 /* ===== Scrollbar ===== */
@@ -82,11 +84,12 @@ body {
 /* ===== Views ===== */
 .view {
   display: none;
-  flex: 1;
+  flex: 1 1 0%;              /* allow shrinking to 0 basis so overflow works */
+  min-height: 0;              /* critical: let flex child shrink below content size */
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;  /* smooth momentum scroll on iOS Safari */
   padding: var(--space-md);
-  padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
 }
 .view.active { display: flex; flex-direction: column; }
 
@@ -485,12 +488,14 @@ body {
   transform: translateX(-50%);
   width: 100%;
   max-width: 430px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
+  background: rgba(15, 15, 26, 0.96); /* subtle translucent bar */
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   display: flex;
   justify-content: space-around;
-  padding: var(--space-sm) 0;
-  padding-bottom: calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
+  padding: 2px 0;
+  padding-bottom: calc(2px + env(safe-area-inset-bottom, 0px));
   z-index: 100;
 }
 
@@ -499,31 +504,31 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: var(--space-xs) var(--space-md);
+  padding: 4px 6px;
   background: none;
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
-  min-width: 64px;
-  min-height: 44px;
+  min-width: 60px;
+  min-height: 36px; /* close to native iOS tab height */
   position: relative;
-  transition: color 0.2s ease;
+  transition: color 0.2s ease, transform 0.15s ease;
 }
 
 .nav-tab.active { color: var(--primary); }
 
-.nav-tab svg { width: 22px; height: 22px; }
+.nav-tab svg { width: 18px; height: 18px; }
 
 .nav-indicator {
   position: absolute;
   top: -1px;
   left: 50%;
   transform: translateX(-50%);
-  width: 32px;
-  height: 3px;
-  border-radius: 0 0 3px 3px;
+  width: 28px;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
   background: var(--primary);
   opacity: 0;
   transition: opacity 0.2s ease;
@@ -884,17 +889,19 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   overflow: hidden;
-  margin-bottom: var(--space-md);
+  margin-bottom: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+  flex-shrink: 0;             /* prevent flex column from compressing cards */
 }
 
 .settings-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-md);
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border);
   cursor: pointer;
-  min-height: 52px;
+  min-height: 48px;
 }
 
 .settings-item:last-child { border-bottom: none; }
@@ -946,6 +953,7 @@ body {
   text-transform: uppercase;
   letter-spacing: 1px;
   padding: var(--space-md) var(--space-md) var(--space-sm);
+  flex-shrink: 0;             /* prevent flex column from compressing titles */
 }
 
 /* ===== Toast ===== */
