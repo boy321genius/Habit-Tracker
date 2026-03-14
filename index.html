@@ -32,6 +32,8 @@
   --radius-lg: 24px;
   --radius-full: 9999px;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --nav-bg: rgba(15, 15, 26, 0.96);
+  --nav-border: rgba(255, 255, 255, 0.06);
 }
 
 [data-theme="light"] {
@@ -41,6 +43,8 @@
   --text-primary: #1A1A2E;
   --text-secondary: #6B6B8A;
   --border: #D8D8E8;
+  --nav-bg: rgba(245, 245, 250, 0.96);
+  --nav-border: rgba(0, 0, 0, 0.08);
 }
 
 /* ===== Reset & Base ===== */
@@ -488,8 +492,8 @@ body {
   transform: translateX(-50%);
   width: 100%;
   max-width: 430px;
-  background: rgba(15, 15, 26, 0.96); /* subtle translucent bar */
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--nav-bg);
+  border-top: 1px solid var(--nav-border);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   display: flex;
@@ -1315,10 +1319,10 @@ body {
   <div class="settings-group">
     <div class="settings-item" id="theme-toggle-item">
       <div>
-        <div class="settings-item-label">Light Mode</div>
-        <div class="settings-item-desc">Switch between dark and light themes</div>
+        <div class="settings-item-label">Dark Mode</div>
+        <div class="settings-item-desc">Switch between light and dark themes</div>
       </div>
-      <div class="toggle" id="theme-toggle" role="switch" aria-label="Toggle light mode">
+      <div class="toggle" id="theme-toggle" role="switch" aria-label="Toggle dark mode">
         <div class="toggle-knob"></div>
       </div>
     </div>
@@ -1439,7 +1443,7 @@ const MASCOTS = [
 const DAY_NAMES = ['S','M','T','W','T','F','S'];
 
 function getDefaultData() {
-  return { habits: [], settings: { theme: 'dark', accentColor: '#6C63FF', mascot: 'cat' }, version: 1 };
+  return { habits: [], settings: { theme: 'light', accentColor: '#6C63FF', mascot: 'cat' }, version: 1 };
 }
 
 function loadData() {
@@ -2515,14 +2519,17 @@ function setupSettings() {
   // Theme toggle
   const toggle = document.getElementById('theme-toggle');
   const toggleItem = document.getElementById('theme-toggle-item');
-  if (appData.settings.theme === 'light') toggle.classList.add('on');
+  if (appData.settings.theme === 'dark') toggle.classList.add('on');
 
   toggleItem.addEventListener('click', () => {
     toggle.classList.toggle('on');
-    const isLight = toggle.classList.contains('on');
-    appData.settings.theme = isLight ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', isLight ? 'light' : '');
-    if (!isLight) document.documentElement.removeAttribute('data-theme');
+    const isDark = toggle.classList.contains('on');
+    appData.settings.theme = isDark ? 'dark' : 'light';
+    if (isDark) {
+      document.documentElement.removeAttribute('data-theme');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
     saveData(appData);
   });
 
