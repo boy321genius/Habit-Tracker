@@ -64,12 +64,10 @@ body {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  min-height: 100dvh;
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
+  height: 100vh;
+  height: 100dvh;          /* locks body to viewport — views scroll internally */
+  overflow: hidden;        /* body itself must NOT scroll; only .view scrolls */
   position: relative;
-  overflow-x: hidden;
 }
 
 /* ===== Scrollbar ===== */
@@ -82,7 +80,14 @@ body {
 .badge-text { font-size: 12px; font-weight: 700; }
 
 /* ===== Views ===== */
-.view { display: none; flex: 1; overflow-y: auto; padding: var(--space-md); padding-bottom: 100px; }
+.view {
+  display: none;
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;  /* smooth momentum scroll on iOS Safari */
+  padding: var(--space-md);
+  padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+}
 .view.active { display: flex; flex-direction: column; }
 
 /* ===== Header ===== */
@@ -90,6 +95,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;           /* never compress the header */
   padding: var(--space-md);
   padding-top: calc(var(--space-md) + env(safe-area-inset-top, 0px));
 }
