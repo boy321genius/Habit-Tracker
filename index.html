@@ -2161,13 +2161,13 @@ function renderLoginMascot() {
 
 // runInit() contains the original app boot logic (called after auth resolves)
 function runInit() {
-  switchView('today');
   // Apply theme
   if (appData.settings.theme === 'light') {
     document.documentElement.setAttribute('data-theme', 'light');
   }
 
   const proceedAfterMascot = () => {
+    switchView('today');
     if (appData.habits.length === 0 && !loadData()) {
       showOnboarding();
     } else {
