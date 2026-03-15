@@ -2038,9 +2038,9 @@ function setupAuth() {
     renderLoginMascot();
   });
 
-  // Auth state changes
+  // Auth state changes — only handle explicit sign-in events, not session restore
   sb.auth.onAuthStateChange(async (event, session) => {
-    if (session && session.user) {
+    if (event === 'SIGNED_IN' && session && session.user) {
       if (!appBooted) {
         appBooted = true;
         await bootApp(session.user);
@@ -2112,15 +2112,16 @@ async function init() {
   setupAuth();
   renderLoginMascot();
 
-  // Always show login overlay first — it has highest z-index and covers onboarding
-  document.getElementById('login-overlay').classList.remove('hidden');
-
   const { data: { session } } = await sb.auth.getSession();
-  if (session) {
-    // Session exists — onAuthStateChange will fire INITIAL_SESSION → bootApp()
-    // bootApp() will hide login-overlay
+  if (session && session.user) {
+    // Returning user with valid session — skip login screen, boot directly
+    document.getElementById('login-overlay').classList.add('hidden');
+    appBooted = true;
+    await bootApp(session.user);
+  } else {
+    // No session — show login screen
+    document.getElementById('login-overlay').classList.remove('hidden');
   }
-  // If no session, login overlay stays visible for user to sign in or skip
 }
 
 function renderApp() {
