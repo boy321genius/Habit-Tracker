@@ -1706,13 +1706,13 @@ body {
   <div class="form-group" id="reminder-group">
     <label class="form-label">Reminders</label>
     <div class="reminder-row" style="margin-bottom: var(--space-sm);">
-      <div class="reminder-toggle-label">
+      <label class="reminder-toggle-label">
         <div class="toggle" id="reminder-toggle" role="switch" aria-label="Toggle reminder">
           <div class="toggle-knob"></div>
         </div>
         <span class="reminder-toggle-text">Remind me</span>
         <input type="checkbox" id="reminder-toggle-input" style="display:none">
-      </div>
+      </label>
     </div>
     <div id="reminder-times-list"></div>
     <button type="button" class="reminder-add-btn" id="reminder-add-btn">+ Add reminder time</button>
@@ -2878,13 +2878,13 @@ function setupSheet() {
 
   // Reminder toggle in sheet
   const remToggle = document.getElementById('reminder-toggle');
-  const remRow = remToggle.closest('.reminder-row') || remToggle.parentElement;
-remRow.addEventListener('click', () => {
+  remToggle.addEventListener('click', (e) => {
+  e.stopPropagation(); // prevent label from double-toggling the checkbox
   const cb = document.getElementById('reminder-toggle-input');
   cb.checked = !cb.checked;
-  remToggle.classList.toggle('on', cb.checked);
-  updateReminderHint();
-});
+    remToggle.classList.toggle('on', cb.checked);
+    updateReminderHint();
+  });
 
   // Add reminder time button
   document.getElementById('reminder-add-btn').addEventListener('click', () => {
@@ -3002,7 +3002,7 @@ function saveHabit() {
 
   const targetVal = parseInt(document.getElementById('target-input').value);
   const intervalVal = parseInt(document.getElementById('interval-input').value);
-  const reminderEnabled = document.getElementById('reminder-toggle-input')?.checked || false;
+  const reminderEnabled = document.getElementById('reminder-toggle')?.classList.contains('on') || false;
   const reminderTimes = Array.from(document.querySelectorAll('.reminder-time-input'))
     .map(el => el.value || '09:00')
     .filter((t, i, a) => a.indexOf(t) === i) // deduplicate
