@@ -1692,6 +1692,8 @@ function isDueToday(habit) {
     case 'weekends': return dow === 0 || dow === 6;
     case 'custom': return (habit.customDays || []).includes(dow);
     case 'interval': {
+      const today = new Date();
+      today.setHours(12, 0, 0, 0);
       const created = new Date(habit.createdAt + 'T12:00:00');
       const diff = Math.floor((today - created) / 86400000);
       return diff % (habit.intervalDays || 2) === 0;
@@ -1856,7 +1858,6 @@ async function bootApp(user) {
     appData = getDefaultData();
   }
 
-  saveData(appData);
   document.getElementById('login-overlay').classList.add('hidden');
   runInit();
 }
@@ -1983,10 +1984,12 @@ function runInit() {
     showOnboarding();
   } else {
     document.getElementById('onboarding').classList.add('hidden');
+    saveData(appData);
     renderApp();
   }
 
   setupNav();
+  setupStats();
   setupFAB();
   setupSheet();
   setupSettings();
@@ -2079,6 +2082,17 @@ function updateDateHeader() {
 }
 
 // ===== Navigation =====
+function setupStats() {
+  document.querySelectorAll('.period-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      statsPeriod = parseInt(btn.dataset.period);
+      document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderStatsView();
+    });
+  });
+}
+
 function setupNav() {
   document.querySelectorAll('.nav-tab').forEach(tab => {
     tab.addEventListener('click', () => switchView(tab.dataset.view));
@@ -2874,16 +2888,6 @@ function renderStatsView() {
 
   renderHeatmap();
   renderCalendar();
-
-  // Period toggle events
-  document.querySelectorAll('.period-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      statsPeriod = parseInt(btn.dataset.period);
-      document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      renderStatsView();
-    });
-  });
 }
 
 function calcCompletionRate(habit, days) {
@@ -3092,7 +3096,7 @@ function renderDayEditor(ds) {
       const h = appData.habits.find(h => h.id === btn.dataset.id);
       if (!h) return;
       const cur  = typeof h.completions[btn.dataset.ds] === 'number' ? h.completions[btn.dataset.ds] : 0;
-      const next = btn.dataset.action === 'inc' ? cur + 1 : Math.max(0, cur - 1);
+      const next = btn.dataset.action === 'inc' ? Math.min(cur + 1, h.targetCount) : Math.max(0, cur - 1);
       if (next === 0) delete h.completions[btn.dataset.ds];
       else h.completions[btn.dataset.ds] = next;
       const s = calcStreak(h);
@@ -3306,10 +3310,10 @@ function setupImport() {
       // Re-apply theme
       if (appData.settings.theme === 'light') {
         document.documentElement.setAttribute('data-theme', 'light');
-        document.getElementById('theme-toggle').classList.add('on');
+        document.getElementById('theme-toggle').classList.remove('on');
       } else {
         document.documentElement.removeAttribute('data-theme');
-        document.getElementById('theme-toggle').classList.remove('on');
+        document.getElementById('theme-toggle').classList.add('on');
       }
       renderApp();
       showToast('✅ Data imported successfully!');
