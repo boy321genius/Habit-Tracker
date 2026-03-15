@@ -1860,8 +1860,12 @@ let deleteHabitId = null;
 async function loadDataFromCloud() {
   if (!currentUser) return null;
   try {
-    const { data, error } = await sb.from('habit_data')
-      .select('data').eq('user_id', currentUser.id).single();
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 4000)
+    );
+    const query = sb.from('habit_data')
+      .select('data').eq('user_id', currentUser.id).maybeSingle();
+    const { data, error } = await Promise.race([query, timeout]);
     if (error || !data) return null;
     return data.data;
   } catch { return null; }
@@ -1870,11 +1874,15 @@ async function loadDataFromCloud() {
 async function saveDataToCloud() {
   if (!currentUser) return;
   try {
-    await sb.from('habit_data').upsert({
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 4000)
+    );
+    const query = sb.from('habit_data').upsert({
       user_id: currentUser.id,
       data: appData,
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' });
+    await Promise.race([query, timeout]);
   } catch (e) { console.warn('Cloud save failed:', e); }
 }
 
@@ -1895,8 +1903,6 @@ function updateAccountUI(user) {
 }
 
 async function bootApp(user) {
-  if (appBooted) { updateAccountUI(user); return; }
-  appBooted   = true;
   currentUser = user;
   updateAccountUI(user);
 
@@ -1907,11 +1913,9 @@ async function bootApp(user) {
     const hasLocalHabits = localData && (localData.habits || []).length > 0;
     const hasCloudHabits = (cloudData.habits || []).length > 0;
     if (hasLocalHabits && hasCloudHabits) {
-      // Both sides have data — prompt merge (reuse existing import modal)
       pendingImportData = cloudData;
-      appData = localData; // keep local for now
+      appData = localData;
       saveData(appData);
-      document.getElementById('login-overlay').classList.add('hidden');
       runInit();
       setTimeout(() => document.getElementById('import-modal').classList.add('show'), 600);
       return;
@@ -1919,12 +1923,11 @@ async function bootApp(user) {
     appData = cloudData;
   } else if (localData) {
     appData = localData;
-    saveDataToCloud(); // push existing local data up to cloud
+    saveDataToCloud();
   } else {
     appData = getDefaultData();
   }
 
-  document.getElementById('login-overlay').classList.add('hidden');
   runInit();
 }
 
@@ -1963,24 +1966,23 @@ function setupAuth() {
     btn.textContent = isSignUp ? 'Creating…' : 'Signing in…';
 
     if (isSignUp) {
-      const { error } = await sb.auth.signUp({ email, password });
-      if (error) {
-        setError(error.message);
+      const { error: signUpError } = await sb.auth.signUp({ email, password });
+      if (signUpError) {
+        setError(signUpError.message);
+        btn.disabled = false;
+        btn.textContent = 'Create Account';
+        return;
       }
-      // onAuthStateChange handles the SIGNED_IN event
+      // onAuthStateChange fires SIGNED_IN automatically — no need to signIn manually
     } else {
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) {
-        if (error.message.toLowerCase().includes('invalid')) {
-          setError('Wrong username or password.');
-        } else {
-          setError(error.message);
-        }
+        setError(error.message.toLowerCase().includes('invalid') ? 'Wrong username or password.' : error.message);
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
       }
+      // On success, onAuthStateChange fires → hides login overlay immediately
     }
-
-    btn.disabled = false;
-    btn.textContent = isSignUp ? 'Create Account' : 'Sign In';
   }
 
   btn.addEventListener('click', attemptAuth);
@@ -2028,8 +2030,17 @@ function setupAuth() {
 
   // Auth state changes
   sb.auth.onAuthStateChange(async (event, session) => {
-    if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
-      await bootApp(session.user);
+    if (session && session.user) {
+      // Hide login immediately — don't wait for bootApp's async data load
+      document.getElementById('login-overlay').classList.add('hidden');
+      if (!appBooted) {
+        appBooted = true;
+        await bootApp(session.user);
+      } else {
+        updateAccountUI(session.user);
+      }
+    } else if (event === 'SIGNED_OUT') {
+      appBooted = false;
     }
   });
 }
