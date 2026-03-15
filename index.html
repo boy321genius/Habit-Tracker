@@ -1379,6 +1379,22 @@ body {
   width: 56px;
   height: 65px;
 }
+
+/* ===== Reminder Row (habit sheet) ===== */
+.reminder-row {
+  display: flex; align-items: center; gap: var(--space-md);
+}
+.reminder-toggle-label {
+  display: flex; align-items: center; gap: var(--space-sm);
+  cursor: pointer; flex-shrink: 0;
+}
+.reminder-toggle-text { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+.reminder-time {
+  width: 120px !important; text-align: center;
+  padding: 10px 12px !important; font-size: 15px !important;
+  color-scheme: dark;
+}
+[data-theme="light"] .reminder-time { color-scheme: light; }
 </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
@@ -1549,6 +1565,9 @@ body {
       <button class="manage-btn" id="signout-btn" style="display:none" aria-label="Sign out">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       </button>
+      <button class="manage-btn" id="signin-btn" style="display:flex" aria-label="Sign in">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+      </button>
     </div>
   </div>
     <div class="settings-section-title">Appearance</div>
@@ -1570,6 +1589,29 @@ body {
     <div style="margin-top: var(--space-md);">
       <label class="form-label">Mascot Name</label>
       <input class="form-input" id="settings-mascot-name" type="text" placeholder="Give your mascot a name" maxlength="20" autocapitalize="words" aria-label="Mascot name">
+    </div>
+  </div>
+
+  <div class="settings-section-title">Reminders</div>
+  <div class="settings-group" id="reminders-group">
+    <div class="settings-item" id="reminders-toggle-item">
+      <div>
+        <div class="settings-item-label">Enable Reminders</div>
+        <div class="settings-item-desc" id="reminders-desc">Get notified to complete your habits</div>
+      </div>
+      <div class="toggle" id="reminders-toggle" role="switch" aria-label="Toggle reminders">
+        <div class="toggle-knob"></div>
+      </div>
+    </div>
+    <div class="settings-item" id="test-notification-item" style="display:none;">
+      <div class="settings-item-label">Send Test Notification</div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    </div>
+    <div class="settings-item" id="ios-install-tip" style="display:none; cursor:default;">
+      <div>
+        <div class="settings-item-label" style="color:var(--warning);">📲 Add to Home Screen</div>
+        <div class="settings-item-desc">For reliable notifications on iPhone, install this app: tap the Share button → "Add to Home Screen"</div>
+      </div>
     </div>
   </div>
 
@@ -1643,6 +1685,20 @@ body {
       <span class="subtext">times per day (leave empty for simple toggle)</span>
     </div>
   </div>
+  <div class="form-group" id="reminder-group">
+    <label class="form-label">Reminder</label>
+    <div class="reminder-row">
+      <label class="reminder-toggle-label">
+        <div class="toggle" id="reminder-toggle" role="switch" aria-label="Toggle reminder">
+          <div class="toggle-knob"></div>
+        </div>
+        <span class="reminder-toggle-text">Remind me</span>
+        <input type="checkbox" id="reminder-toggle-input" style="display:none">
+      </label>
+      <input type="time" class="form-input reminder-time" id="reminder-time-input" value="09:00" aria-label="Reminder time">
+    </div>
+    <div class="subtext" id="reminder-hint" style="margin-top:6px;display:none;">⚠️ Enable notifications in Settings → Reminders first.</div>
+  </div>
   <button class="btn-primary" id="save-habit-btn" aria-label="Save habit">Save Habit</button>
   <button class="btn-danger" id="delete-habit-btn" aria-label="Delete habit" style="display:none;">Delete Habit</button>
   <button class="btn-pause" id="pause-habit-btn" aria-label="Pause or resume habit" style="display:none;">⏸ Pause Habit</button>
@@ -1701,7 +1757,7 @@ const MASCOTS = [
 const DAY_NAMES = ['S','M','T','W','T','F','S'];
 
 function getDefaultData() {
-  return { habits: [], settings: { theme: 'light', accentColor: '#6C63FF', mascot: 'cat', mascotName: '', mascotSetupDone: false }, version: 1 };
+  return { habits: [], settings: { theme: 'light', accentColor: '#6C63FF', mascot: 'cat', mascotName: '', mascotSetupDone: false, remindersEnabled: false }, version: 1 };
 }
 
 function loadData() {
@@ -1715,6 +1771,8 @@ function loadData() {
       // Returning users who already have habits have implicitly done setup
       data.settings.mascotSetupDone = (data.habits && data.habits.length > 0);
     }
+    if (data.settings && data.settings.remindersEnabled === undefined) data.settings.remindersEnabled = false;
+    if (data.habits) data.habits.forEach(h => { if (!h.reminder) h.reminder = { enabled: false, time: '09:00' }; });
     return data;
   } catch { return null; }
 }
@@ -1887,18 +1945,28 @@ async function saveDataToCloud() {
 }
 
 function updateAccountUI(user) {
-  const label  = document.getElementById('account-label');
-  const email  = document.getElementById('account-email');
-  const btn    = document.getElementById('signout-btn');
+  const label     = document.getElementById('account-label');
+  const email     = document.getElementById('account-email');
+  const signoutBtn = document.getElementById('signout-btn');
+  const signinBtn  = document.getElementById('signin-btn');
   if (!label) return;
   if (user) {
     label.textContent = 'Signed in';
     email.textContent = emailToUsername(user.email);
-    btn.style.display = 'flex';
+    if (signoutBtn) signoutBtn.style.display = 'flex';
+    if (signinBtn)  signinBtn.style.display  = 'none';
   } else {
     label.textContent = 'Not signed in';
     email.textContent = '';
-    btn.style.display = 'none';
+    if (signoutBtn) signoutBtn.style.display = 'none';
+    if (signinBtn)  signinBtn.style.display  = 'flex';
+    // Reset login button in case it was left in a loading state
+    const loginBtn = document.getElementById('login-btn');
+    if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = 'Sign In'; }
+    const loginSkip = document.getElementById('login-skip');
+    const loginModeToggle = document.getElementById('login-mode-toggle');
+    if (loginSkip) loginSkip.style.opacity = '';
+    if (loginModeToggle) loginModeToggle.style.opacity = '';
   }
 }
 
@@ -2026,6 +2094,11 @@ function setupAuth() {
   });
 
   // Sign out
+  document.getElementById('signin-btn').addEventListener('click', () => {
+    document.getElementById('login-overlay').classList.remove('hidden');
+    renderLoginMascot();
+  });
+
   document.getElementById('signout-btn').addEventListener('click', async () => {
     await sb.auth.signOut();
     appData = getDefaultData();
@@ -2087,12 +2160,17 @@ function runInit() {
   setupFAB();
   setupSheet();
   setupSettings();
+  setupRemindersSettings();
   setupImport();
   setupDeleteModal();
   setupHistoryCalendar();
   updateDateHeader();
   registerSW();
   injectManifest();
+  // Re-subscribe to push if reminders are enabled (ensures subscription stays fresh)
+  if (appData.settings.remindersEnabled) {
+    navigator.serviceWorker?.ready.then(() => subscribeToPush()).catch(() => {});
+  }
 }
 
 function showOnboarding() {
@@ -2133,15 +2211,33 @@ function renderApp() {
 // ===== PWA =====
 function registerSW() {
   if ('serviceWorker' in navigator) {
-    // No fetch interception — app is fully localStorage-based.
-    // Fetch-intercepting SWs registered via blob: URLs can get stale on
-    // remote hosts (e.g. GitHub Pages) and silently break subsequent loads.
     const swCode = `
       self.addEventListener('install', e => self.skipWaiting());
       self.addEventListener('activate', e => {
         e.waitUntil(
           caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
             .then(() => clients.claim())
+        );
+      });
+      self.addEventListener('message', e => {
+        if (e.data && e.data.type === 'SHOW_NOTIFICATION') {
+          self.registration.showNotification(e.data.title, {
+            body: e.data.body,
+            icon: e.data.icon || '',
+            badge: e.data.icon || '',
+            tag: e.data.tag || 'habit-reminder',
+            renotify: true,
+            data: { url: self.location.origin }
+          });
+        }
+      });
+      self.addEventListener('notificationclick', e => {
+        e.notification.close();
+        e.waitUntil(
+          clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+            if (list.length > 0) return list[0].focus();
+            return clients.openWindow(e.notification.data?.url || '/');
+          })
         );
       });
     `;
@@ -2719,6 +2815,7 @@ function openAddSheet() {
   document.getElementById('interval-input').value = '2';
   document.getElementById('delete-habit-btn').style.display = 'none';
   document.getElementById('pause-habit-btn').style.display = 'none';
+  setReminderFields(false, '09:00');
   renderSheetForm();
   showSheet();
 }
@@ -2741,6 +2838,7 @@ function openEditSheet(id) {
   pauseBtn.textContent = habit.archived ? '▶ Resume Habit' : '⏸ Pause Habit';
   pauseBtn.style.color = habit.archived ? 'var(--success)' : 'var(--warning)';
   pauseBtn.style.borderColor = habit.archived ? 'var(--success)' : 'var(--warning)';
+  setReminderFields(habit.reminder?.enabled || false, habit.reminder?.time || '09:00');
   renderSheetForm();
   showSheet();
 }
@@ -2775,6 +2873,15 @@ function setupSheet() {
   renderEmojiGrid('emoji-grid');
   renderColorSwatches();
   renderFreqOptions();
+
+  // Reminder toggle in sheet
+  const remToggle = document.getElementById('reminder-toggle');
+  remToggle.addEventListener('click', () => {
+    const cb = document.getElementById('reminder-toggle-input');
+    cb.checked = !cb.checked;
+    remToggle.classList.toggle('on', cb.checked);
+    updateReminderHint();
+  });
 }
 
 function showSheet() {
@@ -2880,6 +2987,8 @@ function saveHabit() {
 
   const targetVal = parseInt(document.getElementById('target-input').value);
   const intervalVal = parseInt(document.getElementById('interval-input').value);
+  const reminderEnabled = document.getElementById('reminder-toggle-input')?.checked || false;
+  const reminderTime = document.getElementById('reminder-time-input')?.value || '09:00';
 
   if (editingHabitId) {
     const habit = appData.habits.find(h => h.id === editingHabitId);
@@ -2891,6 +3000,7 @@ function saveHabit() {
       habit.customDays = selectedFreq === 'custom' ? [...selectedDays] : [];
       habit.intervalDays = selectedFreq === 'interval' ? (intervalVal || 2) : undefined;
       habit.targetCount = targetVal > 0 ? targetVal : undefined;
+      habit.reminder = { enabled: reminderEnabled, time: reminderTime };
       habit.streak = calcStreak(habit);
       habit.longestStreak = Math.max(habit.longestStreak || 0, habit.streak);
     }
@@ -2908,7 +3018,8 @@ function saveHabit() {
       streak: 0,
       longestStreak: 0,
       archived: false,
-      targetCount: targetVal > 0 ? targetVal : undefined
+      targetCount: targetVal > 0 ? targetVal : undefined,
+      reminder: { enabled: reminderEnabled, time: reminderTime }
     };
     appData.habits.push(newHabit);
   }
@@ -3221,6 +3332,175 @@ function setupHistoryCalendar() {
   });
   document.getElementById('history-sheet-close').addEventListener('click', closeDayEditor);
   document.getElementById('history-sheet-overlay').addEventListener('click', closeDayEditor);
+}
+
+// ===== Reminders (Web Push) =====
+
+// Your VAPID public key — generated once, never changes
+const VAPID_PUBLIC_KEY = 'BIljboDTAycC2b_mHH63vIfbYk1i-ii82hT1bAmlsrE-egDfuwo485MIWaC6hrSg3V2Mw02_wxi2BsM5V0-9kjk';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw     = atob(base64);
+  return Uint8Array.from(raw, c => c.charCodeAt(0));
+}
+
+function setReminderFields(enabled, time) {
+  const cb        = document.getElementById('reminder-toggle-input');
+  const toggle    = document.getElementById('reminder-toggle');
+  const timeInput = document.getElementById('reminder-time-input');
+  if (cb)        cb.checked = enabled;
+  if (toggle)    toggle.classList.toggle('on', enabled);
+  if (timeInput) timeInput.value = time || '09:00';
+  updateReminderHint();
+}
+
+function updateReminderHint() {
+  const hint = document.getElementById('reminder-hint');
+  const cb   = document.getElementById('reminder-toggle-input');
+  if (!hint || !cb) return;
+  const blocked    = Notification.permission === 'denied';
+  const globalOff  = !appData.settings.remindersEnabled;
+  hint.style.display = (cb.checked && (blocked || globalOff)) ? 'block' : 'none';
+  if (blocked)   hint.textContent = '⚠️ Notifications are blocked. Enable them in your device settings.';
+  else if (globalOff) hint.textContent = '⚠️ Enable notifications in Settings → Reminders first.';
+}
+
+// Subscribe this device to Web Push and save the subscription to Supabase
+async function subscribeToPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    // Check if already subscribed
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    // Save to Supabase (requires signed-in user)
+    if (currentUser) {
+      await sb.from('push_subscriptions').upsert(
+        { user_id: currentUser.id, subscription: sub.toJSON() },
+        { onConflict: 'user_id' }
+      );
+    }
+    return sub;
+  } catch (e) {
+    console.warn('Push subscribe failed:', e);
+    return null;
+  }
+}
+
+// Unsubscribe and remove from Supabase
+async function unsubscribeFromPush() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) await sub.unsubscribe();
+    if (currentUser) {
+      await sb.from('push_subscriptions').delete().eq('user_id', currentUser.id);
+    }
+  } catch (e) {
+    console.warn('Push unsubscribe failed:', e);
+  }
+}
+
+function setupRemindersSettings() {
+  const toggle     = document.getElementById('reminders-toggle');
+  const toggleItem = document.getElementById('reminders-toggle-item');
+  const desc       = document.getElementById('reminders-desc');
+  const testItem   = document.getElementById('test-notification-item');
+  const iosTip     = document.getElementById('ios-install-tip');
+
+  // iOS install tip: on iPhone/iPad Safari (not installed as PWA)
+  const isIOS        = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone === true;
+  if (isIOS && !isStandalone) iosTip.style.display = 'flex';
+
+  // Push not supported at all
+  const pushSupported = ('serviceWorker' in navigator) && ('PushManager' in window) && ('Notification' in window);
+
+  function refreshUI() {
+    const enabled = appData.settings.remindersEnabled;
+    toggle.classList.toggle('on', enabled);
+    testItem.style.display = enabled ? 'flex' : 'none';
+
+    if (!pushSupported) {
+      desc.textContent = 'Push notifications not supported on this browser';
+      desc.style.color = 'var(--warning)';
+    } else if (Notification.permission === 'denied') {
+      desc.textContent = 'Notifications blocked — enable in device settings';
+      desc.style.color = 'var(--warning)';
+    } else if (enabled) {
+      desc.textContent = currentUser
+        ? 'Background reminders active — works even when app is closed'
+        : 'Reminders active while app is open (sign in for background push)';
+      desc.style.color = 'var(--success)';
+    } else {
+      desc.textContent = 'Get notified to complete your habits';
+      desc.style.color = '';
+    }
+  }
+
+  refreshUI();
+
+  toggleItem.addEventListener('click', async () => {
+    if (!pushSupported) {
+      showToast('⚠️ Push notifications not supported here');
+      return;
+    }
+    if (Notification.permission === 'denied') {
+      showToast('⚠️ Notifications are blocked — enable in device settings');
+      return;
+    }
+
+    if (!appData.settings.remindersEnabled) {
+      // Turning ON — request permission then subscribe
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') {
+        showToast('⚠️ Permission not granted');
+        refreshUI();
+        return;
+      }
+      appData.settings.remindersEnabled = true;
+      saveData(appData);
+      refreshUI();
+      updateReminderHint();
+      const sub = await subscribeToPush();
+      showToast(sub ? '🔔 Reminders enabled!' : '🔔 Reminders enabled (open app only — sign in for background push)');
+    } else {
+      // Turning OFF — unsubscribe
+      appData.settings.remindersEnabled = false;
+      saveData(appData);
+      await unsubscribeFromPush();
+      refreshUI();
+      updateReminderHint();
+      showToast('🔕 Reminders disabled');
+    }
+  });
+
+  testItem.addEventListener('click', async () => {
+    if (!('serviceWorker' in navigator)) {
+      showToast('⚠️ Service worker not available');
+      return;
+    }
+    const reg = await navigator.serviceWorker.ready.catch(() => null);
+    if (reg && reg.active) {
+      reg.active.postMessage({
+        type: 'SHOW_NOTIFICATION',
+        title: '🔔 Test Reminder',
+        body:  `${appData.settings.mascotName || 'Your mascot'} says: you\'re doing great!`,
+        tag:   'habit-test'
+      });
+      showToast('Test notification sent!');
+    } else {
+      showToast('⚠️ Service worker not ready — reload the app');
+    }
+  });
 }
 
 // ===== Settings =====
