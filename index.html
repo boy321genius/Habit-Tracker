@@ -2240,7 +2240,10 @@ function renderApp() {
 function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   // Register the real sw.js file — required for push events on iOS PWA
-  navigator.serviceWorker.register('/sw.js').catch(err => {
+  // Use relative path './sw.js' so it works from any hosting subpath
+  navigator.serviceWorker.register('./sw.js', { scope: './' }).then(reg => {
+    console.log('SW registered, scope:', reg.scope);
+  }).catch(err => {
     console.warn('SW registration failed:', err);
   });
 }
@@ -3525,16 +3528,25 @@ function setupRemindersSettings() {
       showToast('⚠️ Service worker not available');
       return;
     }
-    const reg = await navigator.serviceWorker.ready.catch(() => null);
-    if (reg && reg.active) {
-      reg.active.postMessage({
-        type: 'SHOW_NOTIFICATION',
-        title: '🔔 Test Reminder',
-        body:  `${appData.settings.mascotName || 'Your mascot'} says: you\'re doing great!`,
-        tag:   'habit-test'
-      });
-      showToast('Test notification sent!');
-    } else {
+    try {
+      // serviceWorker.ready never rejects but can hang forever if SW
+      // failed to register, so race it against a 3-second timeout.
+      const reg = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+      ]);
+      if (reg && reg.active) {
+        reg.active.postMessage({
+          type: 'SHOW_NOTIFICATION',
+          title: '🔔 Test Reminder',
+          body:  `${appData.settings.mascotName || 'Your mascot'} says: you\'re doing great!`,
+          tag:   'habit-test'
+        });
+        showToast('Test notification sent!');
+      } else {
+        showToast('⚠️ Service worker not ready — reload the app');
+      }
+    } catch (e) {
       showToast('⚠️ Service worker not ready — reload the app');
     }
   });
