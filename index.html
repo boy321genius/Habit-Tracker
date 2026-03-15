@@ -1711,7 +1711,10 @@ function loadData() {
     const data = JSON.parse(raw);
     if (data.settings && !data.settings.mascot) data.settings.mascot = 'cat';
     if (data.settings && data.settings.mascotName === undefined) data.settings.mascotName = '';
-    if (data.settings && data.settings.mascotSetupDone === undefined) data.settings.mascotSetupDone = false;
+    if (data.settings && data.settings.mascotSetupDone === undefined) {
+      // Returning users who already have habits have implicitly done setup
+      data.settings.mascotSetupDone = (data.habits && data.habits.length > 0);
+    }
     return data;
   } catch { return null; }
 }
@@ -1909,7 +1912,7 @@ async function bootApp(user) {
       appData = localData; // keep local for now
       saveData(appData);
       document.getElementById('login-overlay').classList.add('hidden');
-      runInit(true);
+      runInit();
       setTimeout(() => document.getElementById('import-modal').classList.add('show'), 600);
       return;
     }
@@ -1921,9 +1924,8 @@ async function bootApp(user) {
     appData = getDefaultData();
   }
 
-  const isReturning = !!(cloudData || localData);
   document.getElementById('login-overlay').classList.add('hidden');
-  runInit(isReturning);
+  runInit();
 }
 
 function usernameToEmail(username) {
@@ -2008,7 +2010,7 @@ function setupAuth() {
     const existing = loadData();
     appData = existing || getDefaultData();
     document.getElementById('login-overlay').classList.add('hidden');
-    runInit(!!existing);
+    runInit();
   });
 
   // Sign out
@@ -2038,7 +2040,7 @@ function renderLoginMascot() {
 }
 
 // runInit() contains the original app boot logic (called after auth resolves)
-function runInit(isReturningUser = false) {
+function runInit() {
   switchView('today');
   // Apply theme
   if (appData.settings.theme === 'light') {
@@ -2046,7 +2048,6 @@ function runInit(isReturningUser = false) {
   }
 
   const proceedAfterMascot = () => {
-    // Check if first launch (no saved data = brand new user)
     if (appData.habits.length === 0 && !loadData()) {
       showOnboarding();
     } else {
@@ -2056,7 +2057,7 @@ function runInit(isReturningUser = false) {
     }
   };
 
-  if (!isReturningUser && !appData.settings.mascotSetupDone) {
+  if (!appData.settings.mascotSetupDone) {
     showMascotSetup(proceedAfterMascot);
   } else {
     proceedAfterMascot();
