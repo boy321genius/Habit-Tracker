@@ -1389,12 +1389,30 @@ body {
   cursor: pointer; flex-shrink: 0;
 }
 .reminder-toggle-text { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+.reminder-time-row {
+  display: flex; align-items: center; gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
 .reminder-time {
-  width: 120px !important; text-align: center;
+  flex: 1; text-align: center;
   padding: 10px 12px !important; font-size: 15px !important;
   color-scheme: dark;
 }
 [data-theme="light"] .reminder-time { color-scheme: light; }
+.reminder-remove-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: none; background: var(--surface-raised);
+  color: #E74C3C; font-size: 18px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+}
+.reminder-add-btn {
+  width: 100%; padding: 10px;
+  background: none; border: 1px dashed var(--border);
+  border-radius: var(--radius-sm); color: var(--primary);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  margin-top: var(--space-xs);
+}
 </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
@@ -1686,8 +1704,8 @@ body {
     </div>
   </div>
   <div class="form-group" id="reminder-group">
-    <label class="form-label">Reminder</label>
-    <div class="reminder-row">
+    <label class="form-label">Reminders</label>
+    <div class="reminder-row" style="margin-bottom: var(--space-sm);">
       <label class="reminder-toggle-label">
         <div class="toggle" id="reminder-toggle" role="switch" aria-label="Toggle reminder">
           <div class="toggle-knob"></div>
@@ -1695,8 +1713,9 @@ body {
         <span class="reminder-toggle-text">Remind me</span>
         <input type="checkbox" id="reminder-toggle-input" style="display:none">
       </label>
-      <input type="time" class="form-input reminder-time" id="reminder-time-input" value="09:00" aria-label="Reminder time">
     </div>
+    <div id="reminder-times-list"></div>
+    <button type="button" class="reminder-add-btn" id="reminder-add-btn">+ Add reminder time</button>
     <div class="subtext" id="reminder-hint" style="margin-top:6px;display:none;">⚠️ Enable notifications in Settings → Reminders first.</div>
   </div>
   <button class="btn-primary" id="save-habit-btn" aria-label="Save habit">Save Habit</button>
@@ -1772,7 +1791,16 @@ function loadData() {
       data.settings.mascotSetupDone = (data.habits && data.habits.length > 0);
     }
     if (data.settings && data.settings.remindersEnabled === undefined) data.settings.remindersEnabled = false;
-    if (data.habits) data.habits.forEach(h => { if (!h.reminder) h.reminder = { enabled: false, time: '09:00' }; });
+    if (data.habits) data.habits.forEach(h => {
+      if (!h.reminder) {
+        h.reminder = { enabled: false, times: ['09:00'] };
+      } else if (h.reminder.time !== undefined && !h.reminder.times) {
+        // Migrate old single-time format to array
+        h.reminder = { enabled: h.reminder.enabled || false, times: [h.reminder.time || '09:00'] };
+      } else if (!h.reminder.times) {
+        h.reminder.times = ['09:00'];
+      }
+    });
     return data;
   } catch { return null; }
 }
@@ -2815,7 +2843,7 @@ function openAddSheet() {
   document.getElementById('interval-input').value = '2';
   document.getElementById('delete-habit-btn').style.display = 'none';
   document.getElementById('pause-habit-btn').style.display = 'none';
-  setReminderFields(false, '09:00');
+  setReminderFields(false, ['09:00']);
   renderSheetForm();
   showSheet();
 }
@@ -2838,7 +2866,7 @@ function openEditSheet(id) {
   pauseBtn.textContent = habit.archived ? '▶ Resume Habit' : '⏸ Pause Habit';
   pauseBtn.style.color = habit.archived ? 'var(--success)' : 'var(--warning)';
   pauseBtn.style.borderColor = habit.archived ? 'var(--success)' : 'var(--warning)';
-  setReminderFields(habit.reminder?.enabled || false, habit.reminder?.time || '09:00');
+  setReminderFields(habit.reminder?.enabled || false, habit.reminder?.times || habit.reminder?.time ? [habit.reminder.time] : ['09:00']);
   renderSheetForm();
   showSheet();
 }
@@ -2881,6 +2909,18 @@ function setupSheet() {
     cb.checked = !cb.checked;
     remToggle.classList.toggle('on', cb.checked);
     updateReminderHint();
+  });
+
+  // Add reminder time button
+  document.getElementById('reminder-add-btn').addEventListener('click', () => {
+    const list = document.getElementById('reminder-times-list');
+    const currentTimes = Array.from(list.querySelectorAll('.reminder-time-input')).map(el => el.value);
+    if (currentTimes.length >= 5) {
+      showToast('Maximum 5 reminders per habit');
+      return;
+    }
+    currentTimes.push('09:00');
+    renderReminderTimesList(currentTimes);
   });
 }
 
@@ -2988,7 +3028,11 @@ function saveHabit() {
   const targetVal = parseInt(document.getElementById('target-input').value);
   const intervalVal = parseInt(document.getElementById('interval-input').value);
   const reminderEnabled = document.getElementById('reminder-toggle-input')?.checked || false;
-  const reminderTime = document.getElementById('reminder-time-input')?.value || '09:00';
+  const reminderTimes = Array.from(document.querySelectorAll('.reminder-time-input'))
+    .map(el => el.value || '09:00')
+    .filter((t, i, a) => a.indexOf(t) === i) // deduplicate
+    .sort();
+  const reminder = { enabled: reminderEnabled, times: reminderTimes.length > 0 ? reminderTimes : ['09:00'] };
 
   if (editingHabitId) {
     const habit = appData.habits.find(h => h.id === editingHabitId);
@@ -3000,7 +3044,7 @@ function saveHabit() {
       habit.customDays = selectedFreq === 'custom' ? [...selectedDays] : [];
       habit.intervalDays = selectedFreq === 'interval' ? (intervalVal || 2) : undefined;
       habit.targetCount = targetVal > 0 ? targetVal : undefined;
-      habit.reminder = { enabled: reminderEnabled, time: reminderTime };
+      habit.reminder = reminder;
       habit.streak = calcStreak(habit);
       habit.longestStreak = Math.max(habit.longestStreak || 0, habit.streak);
     }
@@ -3019,7 +3063,7 @@ function saveHabit() {
       longestStreak: 0,
       archived: false,
       targetCount: targetVal > 0 ? targetVal : undefined,
-      reminder: { enabled: reminderEnabled, time: reminderTime }
+      reminder: reminder
     };
     appData.habits.push(newHabit);
   }
@@ -3346,13 +3390,35 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from(raw, c => c.charCodeAt(0));
 }
 
-function setReminderFields(enabled, time) {
-  const cb        = document.getElementById('reminder-toggle-input');
-  const toggle    = document.getElementById('reminder-toggle');
-  const timeInput = document.getElementById('reminder-time-input');
-  if (cb)        cb.checked = enabled;
-  if (toggle)    toggle.classList.toggle('on', enabled);
-  if (timeInput) timeInput.value = time || '09:00';
+function renderReminderTimesList(times) {
+  const list = document.getElementById('reminder-times-list');
+  if (!list) return;
+  list.innerHTML = times.map((t, i) => `
+    <div class="reminder-time-row" data-index="${i}">
+      <input type="time" class="form-input reminder-time reminder-time-input"
+        value="${t}" aria-label="Reminder time ${i+1}">
+      <button type="button" class="reminder-remove-btn" data-index="${i}" aria-label="Remove reminder">×</button>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.reminder-remove-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.index);
+      const currentTimes = Array.from(list.querySelectorAll('.reminder-time-input')).map(el => el.value);
+      currentTimes.splice(idx, 1);
+      if (currentTimes.length === 0) currentTimes.push('09:00'); // always at least one
+      renderReminderTimesList(currentTimes);
+    });
+  });
+}
+
+function setReminderFields(enabled, times) {
+  const cb     = document.getElementById('reminder-toggle-input');
+  const toggle = document.getElementById('reminder-toggle');
+  const timesArr = Array.isArray(times) ? times : (times ? [times] : ['09:00']);
+  if (cb)     cb.checked = enabled;
+  if (toggle) toggle.classList.toggle('on', enabled);
+  renderReminderTimesList(timesArr);
   updateReminderHint();
 }
 
