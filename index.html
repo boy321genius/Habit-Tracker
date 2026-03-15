@@ -2219,7 +2219,7 @@ async function init() {
   renderLoginMascot();
 
   const { data: { session } } = await sb.auth.getSession();
-  if (session && session.user) {
+  if (session && session.user && !appBooted) {
     // Returning user with valid session — skip login screen, boot directly
     document.getElementById('login-overlay').classList.add('hidden');
     appBooted = true;
@@ -3514,13 +3514,13 @@ function setupRemindersSettings() {
       const sub = await subscribeToPush();
       showToast(sub ? '🔔 Reminders enabled!' : '🔔 Reminders enabled (open app only — sign in for background push)');
     } else {
-      // Turning OFF — unsubscribe
+      // Turning OFF — update UI immediately, then unsubscribe in background
       appData.settings.remindersEnabled = false;
       saveData(appData);
-      await unsubscribeFromPush();
       refreshUI();
       updateReminderHint();
       showToast('🔕 Reminders disabled');
+      unsubscribeFromPush().catch(() => {});
     }
   });
 
