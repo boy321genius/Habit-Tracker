@@ -1173,22 +1173,26 @@ body {
 
 /* ===== Login Overlay ===== */
 .login-overlay {
-  position: fixed; inset: 0; background: var(--bg);
+  position: fixed; inset: 0; background: #F5F5FA;
+  color: #1A1A2E;
   z-index: 1000; display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   padding: var(--space-xl); text-align: center;
   transition: opacity 0.3s ease;
 }
+.login-overlay h1 { color: #1A1A2E; }
+.login-overlay p  { font-size: 15px; color: #6B6B8A; margin-bottom: var(--space-xl); max-width: 280px; }
+.login-overlay .form-input { background: #FFFFFF; border-color: #D8D8E8; color: #1A1A2E; }
+.login-overlay .form-input::placeholder { color: #6B6B8A; opacity: 0.7; }
 .login-overlay.hidden { display: none; }
 .login-overlay h1 { font-size: 26px; font-weight: 800; margin-bottom: var(--space-sm); }
-.login-overlay p  { font-size: 15px; color: var(--text-secondary); margin-bottom: var(--space-xl); max-width: 280px; }
 .login-mascot { margin-bottom: var(--space-lg); }
 .login-form { width: 100%; max-width: 320px; }
 .login-form .form-input { margin-bottom: var(--space-sm); }
 .login-success { display: none; font-size: 15px; color: var(--success); font-weight: 600; margin-top: var(--space-md); }
 .login-success.show { display: block; }
 .login-mode-toggle {
-  font-size: 13px; color: var(--text-secondary);
+  font-size: 13px; color: #6B6B8A;
   margin-top: var(--space-md); cursor: pointer;
   background: none; border: none; font-family: var(--font);
 }
@@ -1197,7 +1201,7 @@ body {
 .login-error.show { display: block; }
 .login-skip {
   margin-top: var(--space-lg); font-size: 13px;
-  color: var(--text-secondary); cursor: pointer;
+  color: #6B6B8A; cursor: pointer;
   text-decoration: underline; background: none; border: none;
   font-family: var(--font);
 }
@@ -1218,8 +1222,40 @@ body {
   text-decoration: underline;
 }
 
-/* Hidden file input */
-.hidden-input { display: none; }
+/* ===== Mascot Setup Overlay ===== */
+.mascot-setup-overlay {
+  position: fixed; inset: 0; background: #F5F5FA;
+  z-index: 1001; display: flex; align-items: center; justify-content: center;
+  padding: var(--space-xl);
+}
+.mascot-setup-overlay.hidden { display: none; }
+.mascot-setup-inner {
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; width: 100%; max-width: 380px;
+}
+.mascot-setup-preview { margin-bottom: var(--space-md); }
+.mascot-setup-preview .mascot-svg { width: 110px; height: 128px; }
+.mascot-setup-title {
+  font-size: 26px; font-weight: 800; color: #1A1A2E;
+  margin-bottom: var(--space-sm);
+}
+.mascot-setup-sub {
+  font-size: 15px; color: #6B6B8A;
+  margin-bottom: var(--space-lg); max-width: 280px;
+}
+.mascot-setup-input {
+  background: #FFFFFF !important; border-color: #D8D8E8 !important;
+  color: #1A1A2E !important; text-align: center; font-size: 17px !important;
+  font-weight: 600 !important;
+}
+.mascot-setup-input::placeholder { color: #6B6B8A !important; opacity: 0.7 !important; }
+.mascot-setup-btn { max-width: 300px; margin-top: var(--space-md); }
+.mascot-setup-hint {
+  font-size: 12px; color: #9090B0; margin-top: var(--space-lg);
+  max-width: 260px; line-height: 1.5;
+}
+.mascot-setup-hint strong { color: #6B6B8A; }
+
 
 /* ===== Manage Habits (in Settings) ===== */
 .manage-habit-item {
@@ -1363,6 +1399,27 @@ body {
     No account yet? <span id="login-mode-label">Create one</span>
   </button>
   <button class="login-skip" id="login-skip">Continue without an account</button>
+</div>
+
+<!-- Mascot Setup -->
+<div class="mascot-setup-overlay hidden" id="mascot-setup-overlay">
+  <div class="mascot-setup-inner">
+    <div class="mascot-setup-preview" id="mascot-setup-preview"></div>
+    <h1 class="mascot-setup-title">Meet your mascot</h1>
+    <p class="mascot-setup-sub">Pick a companion to cheer you on — and give them a name!</p>
+
+    <div class="mascot-picker" id="setup-mascot-picker" style="justify-content:center; margin-bottom: 20px;"></div>
+
+    <div class="form-group" style="width:100%; max-width:300px;">
+      <label class="form-label" style="color:#6B6B8A;">Name your mascot</label>
+      <input class="form-input mascot-setup-input" id="mascot-name-input" type="text"
+        placeholder="e.g. Biscuit" maxlength="20" autocapitalize="words" spellcheck="false" aria-label="Mascot name">
+    </div>
+
+    <button class="btn-primary mascot-setup-btn" id="mascot-setup-continue" aria-label="Continue">Let's go! 🚀</button>
+
+    <p class="mascot-setup-hint">You can change your mascot and name anytime in the <strong>Settings</strong> tab.</p>
+  </div>
 </div>
 
 <!-- Onboarding -->
@@ -1510,6 +1567,10 @@ body {
   <div class="settings-section-title">Your Mascot</div>
   <div class="settings-group" style="padding: var(--space-md);">
     <div class="mascot-picker" id="settings-mascot-picker"></div>
+    <div style="margin-top: var(--space-md);">
+      <label class="form-label">Mascot Name</label>
+      <input class="form-input" id="settings-mascot-name" type="text" placeholder="Give your mascot a name" maxlength="20" autocapitalize="words" aria-label="Mascot name">
+    </div>
   </div>
 
   <div class="settings-section-title">Manage Habits</div>
@@ -1640,7 +1701,7 @@ const MASCOTS = [
 const DAY_NAMES = ['S','M','T','W','T','F','S'];
 
 function getDefaultData() {
-  return { habits: [], settings: { theme: 'light', accentColor: '#6C63FF', mascot: 'cat' }, version: 1 };
+  return { habits: [], settings: { theme: 'light', accentColor: '#6C63FF', mascot: 'cat', mascotName: '', mascotSetupDone: false }, version: 1 };
 }
 
 function loadData() {
@@ -1649,6 +1710,8 @@ function loadData() {
     if (!raw) return null;
     const data = JSON.parse(raw);
     if (data.settings && !data.settings.mascot) data.settings.mascot = 'cat';
+    if (data.settings && data.settings.mascotName === undefined) data.settings.mascotName = '';
+    if (data.settings && data.settings.mascotSetupDone === undefined) data.settings.mascotSetupDone = false;
     return data;
   } catch { return null; }
 }
@@ -1846,7 +1909,7 @@ async function bootApp(user) {
       appData = localData; // keep local for now
       saveData(appData);
       document.getElementById('login-overlay').classList.add('hidden');
-      runInit();
+      runInit(true);
       setTimeout(() => document.getElementById('import-modal').classList.add('show'), 600);
       return;
     }
@@ -1858,8 +1921,9 @@ async function bootApp(user) {
     appData = getDefaultData();
   }
 
+  const isReturning = !!(cloudData || localData);
   document.getElementById('login-overlay').classList.add('hidden');
-  runInit();
+  runInit(isReturning);
 }
 
 function usernameToEmail(username) {
@@ -1941,9 +2005,10 @@ function setupAuth() {
   document.getElementById('login-skip').addEventListener('click', () => {
     appBooted = true;
     currentUser = null;
-    appData = loadData() || getDefaultData();
+    const existing = loadData();
+    appData = existing || getDefaultData();
     document.getElementById('login-overlay').classList.add('hidden');
-    runInit();
+    runInit(!!existing);
   });
 
   // Sign out
@@ -1973,19 +2038,28 @@ function renderLoginMascot() {
 }
 
 // runInit() contains the original app boot logic (called after auth resolves)
-function runInit() {
+function runInit(isReturningUser = false) {
+  switchView('today');
   // Apply theme
   if (appData.settings.theme === 'light') {
     document.documentElement.setAttribute('data-theme', 'light');
   }
 
-  // Check if first launch (no saved data = brand new user)
-  if (appData.habits.length === 0 && !loadData()) {
-    showOnboarding();
+  const proceedAfterMascot = () => {
+    // Check if first launch (no saved data = brand new user)
+    if (appData.habits.length === 0 && !loadData()) {
+      showOnboarding();
+    } else {
+      document.getElementById('onboarding').classList.add('hidden');
+      saveData(appData);
+      renderApp();
+    }
+  };
+
+  if (!isReturningUser && !appData.settings.mascotSetupDone) {
+    showMascotSetup(proceedAfterMascot);
   } else {
-    document.getElementById('onboarding').classList.add('hidden');
-    saveData(appData);
-    renderApp();
+    proceedAfterMascot();
   }
 
   setupNav();
@@ -2126,6 +2200,8 @@ function switchView(view) {
       saveData(appData);
       renderTodayView();
     });
+    const mn = document.getElementById('settings-mascot-name');
+    if (mn) mn.value = appData.settings.mascotName || '';
   }
 }
 
@@ -2850,6 +2926,7 @@ function renderStatsView() {
   if (habits.length === 0) {
     container.innerHTML = '<div class="empty-state"><h3>No habits to show</h3><p>Add some habits to see your stats</p></div>';
     renderHeatmap();
+    renderCalendar();
     return;
   }
 
@@ -3108,6 +3185,7 @@ function renderDayEditor(ds) {
 }
 
 function setupHistoryCalendar() {
+  renderCalendar();
   document.getElementById('cal-prev').addEventListener('click', () => {
     calMonth--;
     if (calMonth < 0) { calMonth = 11; calYear--; }
@@ -3175,6 +3253,16 @@ function setupSettings() {
     saveData(appData);
     renderTodayView();
   });
+
+  // Mascot name input
+  const mascotNameInput = document.getElementById('settings-mascot-name');
+  if (mascotNameInput) {
+    mascotNameInput.value = appData.settings.mascotName || '';
+    mascotNameInput.addEventListener('input', () => {
+      appData.settings.mascotName = mascotNameInput.value.trim();
+      saveData(appData);
+    });
+  }
 }
 
 function renderSettingsManageList() {
@@ -3321,6 +3409,33 @@ function setupImport() {
     document.getElementById('import-modal').classList.remove('show');
     pendingImportData = null;
   });
+}
+
+function showMascotSetup(onDone) {
+  const overlay = document.getElementById('mascot-setup-overlay');
+  const preview = document.getElementById('mascot-setup-preview');
+  const nameInput = document.getElementById('mascot-name-input');
+
+  overlay.classList.remove('hidden');
+  nameInput.value = appData.settings.mascotName || '';
+
+  function refreshPreview() {
+    preview.innerHTML = createMascotSVG(60, appData.settings.mascot || 'cat');
+  }
+  refreshPreview();
+
+  renderMascotPicker('setup-mascot-picker', appData.settings.mascot || 'cat', id => {
+    appData.settings.mascot = id;
+    refreshPreview();
+  });
+
+  document.getElementById('mascot-setup-continue').onclick = () => {
+    appData.settings.mascotName = nameInput.value.trim();
+    appData.settings.mascotSetupDone = true;
+    saveData(appData);
+    overlay.classList.add('hidden');
+    onDone();
+  };
 }
 
 // ===== Onboarding =====
