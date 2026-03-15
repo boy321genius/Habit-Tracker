@@ -2837,7 +2837,7 @@ function openEditSheet(id) {
   pauseBtn.textContent = habit.archived ? '▶ Resume Habit' : '⏸ Pause Habit';
   pauseBtn.style.color = habit.archived ? 'var(--success)' : 'var(--warning)';
   pauseBtn.style.borderColor = habit.archived ? 'var(--success)' : 'var(--warning)';
-  setReminderFields(habit.reminder?.enabled || false, habit.reminder?.times || habit.reminder?.time ? [habit.reminder.time] : ['09:00']);
+  setReminderFields(habit.reminder?.enabled || false, habit.reminder?.times || (habit.reminder?.time ? [habit.reminder.time] : ['09:00']));
   renderSheetForm();
   showSheet();
 }
