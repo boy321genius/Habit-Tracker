@@ -2878,13 +2878,13 @@ function setupSheet() {
 
   // Reminder toggle in sheet
   const remToggle = document.getElementById('reminder-toggle');
-  remToggle.addEventListener('click', (e) => {
-  e.stopPropagation(); // prevent label from double-toggling the checkbox
+  const remRow = remToggle.closest('.reminder-row') || remToggle.parentElement;
+remRow.addEventListener('click', () => {
   const cb = document.getElementById('reminder-toggle-input');
   cb.checked = !cb.checked;
-    remToggle.classList.toggle('on', cb.checked);
-    updateReminderHint();
-  });
+  remToggle.classList.toggle('on', cb.checked);
+  updateReminderHint();
+});
 
   // Add reminder time button
   document.getElementById('reminder-add-btn').addEventListener('click', () => {
