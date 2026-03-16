@@ -3389,7 +3389,7 @@ function setupHistoryCalendar() {
 // ===== Reminders (Web Push) =====
 
 // Your VAPID public key — generated once, never changes
-const VAPID_PUBLIC_KEY = 'BIiCnvS4OJmP_Vl2vf9XfYj6WZGbeuoZmNIEWoE6GhW-3uOG1LgfdwsWzVY3W_hI9gQm7e4gVG0SOmAzjX9rfAk';
+const VAPID_PUBLIC_KEY = 'BLEVuPh8Ang7iDQ2SGP3HlsCpEl42UtCCki0Cpl5q_lAe3TucwT_JmQZQ58JwVZgi6yuPVJaHKBla8fYVXdD2II';
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -3541,6 +3541,7 @@ function setupRemindersSettings() {
         return;
       }
       appData.settings.remindersEnabled = true;
+      appData.settings.utcOffset = -new Date().getTimezoneOffset();
       saveData(appData);
       refreshUI();
       updateReminderHint();
