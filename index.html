@@ -2081,6 +2081,10 @@ function setupAuth() {
 
   const btn       = document.getElementById('login-btn');
   const errEl     = document.getElementById('login-error');
+  const signinTab = document.getElementById('login-mode-signin');
+  const createTab = document.getElementById('login-mode-create');
+  const subtitle  = document.getElementById('login-subtitle');
+
   // Toggle sign-in ↔ create-account mode
   function setMode(signUp) {
     isSignUp = signUp;
@@ -2139,17 +2143,6 @@ function setupAuth() {
       if (e.key === 'Enter') attemptAuth();
     })
   );
-
-  // Toggle sign-in ↔ create-account mode
-  modeToggle.addEventListener('click', () => {
-    isSignUp = !isSignUp;
-    btn.textContent      = isSignUp ? 'Create Account' : 'Sign In';
-    modeLabel.textContent= isSignUp ? 'Sign in instead' : 'Create one';
-    subtitle.textContent = isSignUp
-      ? 'Create an account to sync your habits across devices.'
-      : 'Sign in to sync your habits across devices.';
-    setError('');
-  });
 
   // Skip — use app without account
   document.getElementById('login-skip').addEventListener('click', () => {
