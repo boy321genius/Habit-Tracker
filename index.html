@@ -1209,11 +1209,8 @@ body {
 .login-success { display: none; font-size: 15px; color: var(--success); font-weight: 600; margin-top: var(--space-md); }
 .login-success.show { display: block; }
 .login-mode-toggle {
-  font-size: 13px; color: #6B6B8A;
-  margin-top: var(--space-md); cursor: pointer;
-  background: none; border: none; font-family: var(--font);
+  margin-top: var(--space-lg);
 }
-.login-mode-toggle span { color: var(--primary); font-weight: 600; cursor: pointer; text-decoration: underline; }
 .login-error { display: none; font-size: 13px; color: #E74C3C; font-weight: 600; margin-top: var(--space-sm); }
 .login-error.show { display: block; }
 .login-skip {
@@ -1446,9 +1443,10 @@ body {
     <button class="btn-primary" id="login-btn" aria-label="Sign in">Sign In</button>
     <div class="login-error" id="login-error"></div>
   </div>
-  <button class="login-mode-toggle" id="login-mode-toggle">
-    No account yet? <span id="login-mode-label">Create one</span>
-  </button>
+  <div class="period-toggle login-mode-toggle" id="login-mode-toggle" style="max-width:320px;width:100%;margin-top:var(--space-lg);">
+    <button class="period-btn active" id="login-mode-signin" aria-label="Sign in mode">Sign In</button>
+    <button class="period-btn" id="login-mode-create" aria-label="Create account mode">Create Account</button>
+  </div>
   <button class="login-skip" id="login-skip">Continue without an account</button>
 </div>
 
@@ -2083,9 +2081,19 @@ function setupAuth() {
 
   const btn       = document.getElementById('login-btn');
   const errEl     = document.getElementById('login-error');
-  const modeToggle= document.getElementById('login-mode-toggle');
-  const modeLabel = document.getElementById('login-mode-label');
-  const subtitle  = document.getElementById('login-subtitle');
+  // Toggle sign-in ↔ create-account mode
+  function setMode(signUp) {
+    isSignUp = signUp;
+    signinTab.classList.toggle('active', !signUp);
+    createTab.classList.toggle('active', signUp);
+    btn.textContent      = signUp ? 'Create Account' : 'Sign In';
+    subtitle.textContent = signUp
+      ? 'Create an account to sync across devices.'
+      : 'Sign in to sync your habits across devices.';
+    setError('');
+  }
+  signinTab.addEventListener('click', () => setMode(false));
+  createTab.addEventListener('click', () => setMode(true));
 
   function setError(msg) {
     errEl.textContent = msg;
@@ -2138,7 +2146,7 @@ function setupAuth() {
     btn.textContent      = isSignUp ? 'Create Account' : 'Sign In';
     modeLabel.textContent= isSignUp ? 'Sign in instead' : 'Create one';
     subtitle.textContent = isSignUp
-      ? 'Create an account to sync across devices.'
+      ? 'Create an account to sync your habits across devices.'
       : 'Sign in to sync your habits across devices.';
     setError('');
   });
