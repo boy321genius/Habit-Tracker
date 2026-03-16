@@ -1024,23 +1024,40 @@ body {
 .modal-title { font-size: 18px; font-weight: 700; margin-bottom: var(--space-sm); }
 .modal-text { font-size: 14px; color: var(--text-secondary); margin-bottom: var(--space-lg); line-height: 1.5; }
 
-.modal-actions { display: flex; gap: var(--space-sm); }
+.modal-actions { display: flex; flex-direction: column; gap: var(--space-sm); }
 
 .modal-btn {
-  flex: 1;
-  padding: 12px;
+  width: 100%;
+  padding: 14px var(--space-md);
   border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   border: none;
   transition: opacity 0.15s ease;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.modal-btn-desc {
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.75;
+  line-height: 1.4;
 }
 
 .modal-btn:active { opacity: 0.8; }
 .modal-btn.primary { background: var(--primary); color: white; }
 .modal-btn.secondary { background: var(--surface-raised); color: var(--text-primary); }
-.modal-btn.cancel { background: none; color: var(--text-secondary); border: 1px solid var(--border); }
+.modal-btn.cancel {
+  background: none;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  text-align: center;
+  align-items: center;
+}
 
 /* ===== Onboarding ===== */
 .onboarding {
@@ -1494,12 +1511,18 @@ body {
 <!-- Import Modal -->
 <div class="modal-overlay" id="import-modal">
   <div class="modal">
-    <div class="modal-title">Import Data</div>
-    <div class="modal-text">How would you like to handle the imported data?</div>
+    <div class="modal-title" id="import-modal-title">Import Data</div>
+    <div class="modal-text" id="import-modal-text">How would you like to handle the imported data?</div>
     <div class="modal-actions">
+      <button class="modal-btn primary" id="import-merge" aria-label="Merge data">
+        Merge
+        <span class="modal-btn-desc" id="import-merge-desc">Combine both sets of habits. Keeps everything from both sides — nothing is lost.</span>
+      </button>
+      <button class="modal-btn secondary" id="import-replace" aria-label="Replace data">
+        Replace
+        <span class="modal-btn-desc" id="import-replace-desc">Overwrite this device's data with the imported data. Your current habits will be deleted.</span>
+      </button>
       <button class="modal-btn cancel" id="import-cancel" aria-label="Cancel import">Cancel</button>
-      <button class="modal-btn secondary" id="import-merge" aria-label="Merge data">Merge</button>
-      <button class="modal-btn primary" id="import-replace" aria-label="Replace data">Replace</button>
     </div>
   </div>
 </div>
@@ -2014,15 +2037,24 @@ async function bootApp(user) {
   const localData = loadData();
 
   if (cloudData) {
-    const hasLocalHabits = localData && (localData.habits || []).length > 0;
-    const hasCloudHabits = (cloudData.habits || []).length > 0;
-    if (hasLocalHabits && hasCloudHabits) {
+    const localHabitIds = new Set((localData?.habits || []).map(h => h.id));
+    const cloudHabitIds = new Set((cloudData.habits || []).map(h => h.id));
+    const hasLocalOnly  = [...localHabitIds].some(id => !cloudHabitIds.has(id));
+    const hasCloudOnly  = [...cloudHabitIds].some(id => !localHabitIds.has(id));
+    const genuineConflict = localHabitIds.size > 0 && cloudHabitIds.size > 0 && (hasLocalOnly || hasCloudOnly);
+    if (genuineConflict) {
       pendingImportData = cloudData;
       appData = localData;
       saveData(appData);
       document.getElementById('login-overlay').classList.add('hidden');
       runInit();
-      setTimeout(() => document.getElementById('import-modal').classList.add('show'), 600);
+      setTimeout(() => {
+        document.getElementById('import-modal-title').textContent = 'Habits Out of Sync';
+        document.getElementById('import-modal-text').textContent = 'Your cloud account and this device have different habits. How would you like to resolve this?';
+        document.getElementById('import-merge-desc').textContent = 'Combine both. Habits from the cloud and this device will all be kept — nothing is lost.';
+        document.getElementById('import-replace-desc').textContent = 'Use cloud data only. The habits on this device will be replaced with your cloud habits.';
+        document.getElementById('import-modal').classList.add('show');
+      }, 600);
       return;
     }
     appData = cloudData;
@@ -2224,10 +2256,11 @@ async function init() {
     document.getElementById('login-overlay').classList.add('hidden');
     appBooted = true;
     await bootApp(session.user);
-  } else {
-    // No session — show login screen
+  } else if (!appBooted) {
+    // No session and app not yet booted — show login screen
     document.getElementById('login-overlay').classList.remove('hidden');
   }
+  // If appBooted is already true, onAuthStateChange fired first and handled everything
 }
 
 function renderApp() {
